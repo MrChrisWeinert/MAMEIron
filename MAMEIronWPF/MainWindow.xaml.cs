@@ -32,20 +32,24 @@ namespace MAMEIronWPF
         private string _mameExe;
         private string _gamesJson;
         private string _logFile;
+
         private int _ctrlcount = 0;
         private Dictionary<string, System.Windows.Media.ImageSource> _snapshots;
         private ObservableCollection<Game> _games { get; set; }
         private int _selectedIndex { get; set; }
+
         public NusbioPixel nusbioPixel;
         private int _whiteStripPWMIntensity;
         enum CabinetLights { On, Off};
         CabinetLights _cabinetLights;
+
         public DateTime _lastMotionDetectedTime;
         private MotionDetector detector;
         private const int MOTIONTIMEOUT = 15;// 15*60; //15 minutes
         private FilterInfoCollection _localWebCamsCollection;
         private VideoCaptureDevice _localWebCam;
         private static System.Timers.Timer _opacityTimer;
+
         private Utility _utility;
 
         public MainWindow()
@@ -59,20 +63,26 @@ namespace MAMEIronWPF
             _snapshots = new Dictionary<string, System.Windows.Media.ImageSource>();
             _gamesJson = Path.Combine(_rootDirectory, "games.json");
             _utility = new Utility(_logFile);
-
+            string errorText;
             if (!File.Exists(_mameExe))
             {
-                _utility.WriteToLogFile("Missing MAME executable.");
+                errorText = $"{_mameExe} does not exist.";
+                MessageBox.Show(errorText, "Fatal Error");
+                _utility.WriteToLogFile(errorText);
                 Environment.Exit(1);
             }
             else if (!File.Exists(_gamesJson))
             {
-                _utility.WriteToLogFile("Missing games.json file.");
+                errorText = $"{_gamesJson} does not exist.";
+                MessageBox.Show(errorText, "Fatal Error");
+                _utility.WriteToLogFile(errorText);
                 Environment.Exit(1);
             }
             else if (!Directory.Exists(_snapDirectory))
             {
-                _utility.WriteToLogFile("Missing snap directory.");
+                errorText = $"{_snapDirectory} does not exist.";
+                MessageBox.Show(errorText, "Fatal Error");
+                _utility.WriteToLogFile(errorText);
                 Environment.Exit(1);
             }
 
