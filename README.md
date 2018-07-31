@@ -1,13 +1,13 @@
 # MAMEIron
 MAMEIron is a .NET-based MAME Front-end built in WPF.
-![screenshot](https://raw.githubusercontent.com/MrChrisWeinert/MAMEIron/master/Images/screenshot.png)
+![screenshot](https://github.com/MrChrisWeinert/MAMEIron/raw/master/MAMEIronWPF/Images/screenshot.png)
 
 Prerequisites:
 1) You must have MAME installed
 2) You must have snapshots for all the games you wish to play
 
 Installation:
-1A) Unzip the [Release](../../raw/master/Releases/MAMEIron.zip) zip file into your MAME folder, or
+1A) Unzip the [Release](https://github.com/MrChrisWeinert/MAMEIron/blob/master/Releases/MAMEIron.zip) zip file into your MAME folder, or
 1B) Build from source and copy the files from /bin/Release to your MAME folder
 2)  Modify the MAMEIron.exe.config file to set your preferences
 3)  Install the two fonts included in the /fonts folder
