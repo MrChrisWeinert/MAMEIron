@@ -5,13 +5,16 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Xml;
-using MAMEIron.Common;
+using System.Configuration;
+using System.Diagnostics;
+using System;
 
-namespace MAME_XML_Parser
+namespace MAMEIronWPF
 {
-    class Program
+    public class GameListCreator
     {
-        private string _mameDir;
+        private string _rootDirectory;
+        private string _mameExe;
         private string _listFull;
         private string _snapsDir;
         private string _gamesJson;
@@ -19,19 +22,64 @@ namespace MAME_XML_Parser
         private List<Game> _games;
         private Dictionary<string, string> _categories;
         private Dictionary<string, float> _versions;
-        static void Main(string[] args)
+
+        public void GenerateGameList(string mameExe, string gamesJson, string snapDir)
         {
-            Program aProgram = new Program();
-            aProgram._games = new List<Game>();
-            aProgram._mameDir = @"C:\MAME";
-            aProgram._listFull = Path.Combine(aProgram._mameDir, "list.xml");
-            aProgram._snapsDir = Path.Combine(aProgram._mameDir, "snap");
-            aProgram._catver = Path.Combine(aProgram._mameDir, "catver.ini");
-            aProgram._gamesJson = Path.Combine(aProgram._mameDir, "games.json");
-            aProgram._categories = new Dictionary<string, string>();
-            aProgram._versions = new Dictionary<string, float>();
-            aProgram.LoadCategoriesAndVersions();
-            aProgram.ParseXMLAndFilter();
+            _rootDirectory = ConfigurationManager.AppSettings["rootDirectory"];
+            _mameExe = mameExe;
+            _gamesJson = gamesJson;
+            _snapsDir = snapDir;
+            if (!File.Exists(_gamesJson))
+            {
+                GenerateGamesJSON();
+            }
+
+            return;
+        }
+        private void GenerateGamesJSON()
+        {
+            _listFull = Path.Combine(_rootDirectory, "list.xml");
+            if (!File.Exists(_listFull))
+            {
+                GenerateGamesXML();
+            }
+
+            //I included an old version of Catver from: http://www.progettosnaps.net/catver/ but there are newer versions available.
+            
+            //Case-sensitive
+            _catver = Path.Combine(_rootDirectory, "Catver.ini");
+            _gamesJson = Path.Combine(_rootDirectory, "games.json");
+            _categories = new Dictionary<string, string>();
+            _versions = new Dictionary<string, float>();
+            LoadCategoriesAndVersions();
+            ParseXMLAndFilter();
+
+        }
+
+        private void GenerateGamesXML()
+        {
+            string st = _mameExe;
+            Process process = new Process();
+            process.StartInfo.FileName = st;
+            process.StartInfo.WorkingDirectory = _rootDirectory;
+            process.StartInfo.Arguments = " -listxml";
+            process.StartInfo.UseShellExecute = false;
+            process.StartInfo.RedirectStandardOutput = true;
+            //Perf note: It will take MAME a few minutes to generate the list.xml file. It's roughly 170MB in size (version .161).
+            process.Start();
+
+            using (StreamReader sr = process.StandardOutput)
+            {
+                using (StreamWriter sw = new StreamWriter(_listFull))
+                {
+                    sw.Write(sr.ReadToEnd());
+                    sw.Close();
+                    sw.Dispose();
+                }
+                sr.Close();
+                sr.Dispose();
+                sr.DiscardBufferedData();
+            }
         }
 
         private void LoadCategoriesAndVersions()
@@ -79,12 +127,17 @@ namespace MAME_XML_Parser
 
         private void ParseXMLAndFilter()
         {
+            _games = new List<Game>();
             XmlDocument doc = new XmlDocument();
+            //Perf note: The list.xml file is roughly 170MB (version .161). Loading this into memory uses ~2GB of RAM.
             doc.Load(_listFull);
             XmlNode root = doc.SelectSingleNode("mame");
             HashSet<string> drivers = new HashSet<string>();
             HashSet<string> statuses = new HashSet<string>();
             List<string> KillList = new List<string>();
+            //There are several screenshots for games that use a "default" or "image not found" or some generic varation of a blank screen. I don't want those games, so I filter them out.
+            //I think I sorted the images based on file size (on disk) and saw a bunch of repeating images, and then calculated the MD5 of those images I wanted to kill and added them here.
+            // Leaving the code in for now.
             //KillList.Add("e2b8f257fea66b661ee70efc73b6c84a");
             //KillList.Add("6a4ca1ab352df8af4a25c50a65bb8963");
             //KillList.Add("30ab4d58332ef5332affe5f3320c647a");
@@ -128,11 +181,11 @@ namespace MAME_XML_Parser
                         string category = _categories.Where(x => x.Key == g.Name).FirstOrDefault().Value;
                         if (category != null)
                         {
+                            //Filter out mature games
                             if (category.Contains("* Mature *"))
                             {
                                 g.IsMature = true;
                                 g.IsExcluded = true;
-                                //category = category.Replace("* Mature *", "");
                             }
                             else
                             {
@@ -153,11 +206,15 @@ namespace MAME_XML_Parser
                                 g.SubCategory = subCategory;
                             }
                             g.Screenshot = g.Name + ".png";
+                            
+                            //Filter out games by category, subcategory, description, or if it's a clone
                             if (g.Category == "Electromechanical" || g.SubCategory == "Reels" || g.Category == "Casino" || g.SubCategory == "Mahjong" || (g.Category == "Rhythm" && (g.SubCategory == "Dance" || g.SubCategory == "Instruments")) || g.Category == "Home Systems" || g.Category == "Professional Systems" || g.Category == "System" || g.Category == "Ball & Paddle" || isClone || g.Description.Contains("DECO Cassette") || g.Category == "Multiplay" || g.Description.Contains("PlayChoice-10") || g.Category == "Quiz" || g.Description.Contains("bootleg"))
                             {
                                 g.IsExcluded = true;
                             }
-                            if (File.Exists(Path.Combine(@"C:\MAME\snap", g.Screenshot)) && isValidScreenshot(Path.Combine(@"C:\MAME\snap", g.Screenshot), KillList))
+
+                            //Only add games for which we have a screenshot, and only if it's not in the Kill List
+                            if (isValidScreenshot(Path.Combine(_snapsDir, g.Screenshot), KillList))
                             {
                                 _games.Add(g);
                             }
@@ -170,25 +227,37 @@ namespace MAME_XML_Parser
 
         private static bool isValidScreenshot(string screenshot, List<string> killList)
         {
-            string md5 = HashFile(screenshot);
-            if (killList.Contains(md5))
+            if (File.Exists(screenshot))
             {
-                return false;
+                string md5 = HashFile(screenshot);
+                //Don't add it if it's in the kill list
+                if (killList.Contains(md5))
+                {
+                    return false;
+                }
+                else
+                {
+                    //There were a bunch of screenshots that I wanted to kill and they all had similar timestamps (but varying MD5 hashes).
+                    //  This code allows us to filter out based on timestamp. Again, leaving this code here "just in case" 
+                    //TODO: Clean this up since it won't compile as-is.
+
+                    //DateTime dt = File.tim(screenshot);
+                    //DateTime dtStart = new DateTime(2015, 01, 16, 23, 18, 0);
+                    //DateTime dtEnd = new DateTime(2015, 01, 16, 23, 20, 0);
+                    //if (dt > dtStart && dt < dtEnd )
+                    //{
+                    //    return false;
+                    //}
+                    //else
+                    {
+                        return true;
+                    }
+                }
             }
             else
             {
-                //DateTime dt = File.tim(screenshot);
-                //DateTime dtStart = new DateTime(2015, 01, 16, 23, 18, 0);
-                //DateTime dtEnd = new DateTime(2015, 01, 16, 23, 20, 0);
-                //if (dt > dtStart && dt < dtEnd )
-                //{
-                //    return false;
-                //}
-                //else
-                {
-                    return true;
-                }
-            }            
+                return false;
+            }
         }
 
         static string HashFile(string filePath)
@@ -219,10 +288,12 @@ namespace MAME_XML_Parser
         }
         static void WriteNewGamesFile(List<Game> _games, string _gamesJson)
         {
-            StreamWriter sw = new StreamWriter(_gamesJson, false);
-            string json = JsonConvert.SerializeObject(_games);
-            sw.WriteLine(json);
-            sw.Close();
+            using (StreamWriter sw = new StreamWriter(_gamesJson, false))
+            {
+                string json = JsonConvert.SerializeObject(_games);
+                sw.WriteLine(json);
+                sw.Close();
+            }
         }
     }
 }

@@ -20,7 +20,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>..\..\..\..\..\MAME\</OutputPath>
+    <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -84,6 +84,8 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Game.cs" />
+    <Compile Include="Utility.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -92,6 +94,7 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="GameListCreator.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -115,12 +118,15 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
-    <Content Include="fonts\ARCADE.TTF">
+    <None Include="fonts\ARCADE.TTF">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="fonts\PacFont Good.ttf">
+    </None>
+    <None Include="fonts\PacFont Good.ttf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
+    </None>
+    <None Include="Catver.ini">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
@@ -134,10 +140,6 @@
     <ProjectReference Include="..\MadeInTheUSB.MCU.Lib\MadeInTheUSB.MCU.Lib.csproj">
       <Project>{aa0ed0b9-69ae-43fc-84f3-c69d2d9d8477}</Project>
       <Name>MadeInTheUSB.MCU.Lib</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\MAMEIron.Common\MAMEIron.Common.csproj">
-      <Project>{5fb350d0-3dac-47f6-a000-a9a476a199c2}</Project>
-      <Name>MAMEIron.Common</Name>
     </ProjectReference>
     <ProjectReference Include="..\Planerator\Planerator.csproj">
       <Project>{e7d5c246-122c-42e5-89b2-a7a704136b12}</Project>

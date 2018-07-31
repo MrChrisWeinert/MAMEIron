@@ -11,7 +11,6 @@ using System.Windows.Media.Imaging;
 using Newtonsoft.Json;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using MAMEIron.Common;
 using MadeInTheUSB.MCU;
 using MadeInTheUSB.Components;
 using System.Drawing;
@@ -81,10 +80,8 @@ namespace MAMEIronWPF
             }
             else if (!File.Exists(_gamesJson))
             {
-                errorText = $"{_gamesJson} does not exist.";
-                MessageBox.Show(errorText, "Fatal Error");
-                _utility.WriteToLogFile(errorText);
-                Environment.Exit(1);
+                GameListCreator glc = new GameListCreator();
+                glc.GenerateGameList(_mameExe, _gamesJson, _snapDirectory);
             }
             else if (!Directory.Exists(_snapDirectory))
             {

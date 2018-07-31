@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace MAMEIron.Common
+namespace MAMEIronWPF
 {
     public class Utility
     {

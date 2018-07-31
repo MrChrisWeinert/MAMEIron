@@ -1,4 +1,4 @@
-﻿namespace MAMEIron.Common
+﻿namespace MAMEIronWPF
 {
     public class Game
     {
