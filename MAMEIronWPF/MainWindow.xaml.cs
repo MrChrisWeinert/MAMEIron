@@ -98,6 +98,8 @@ namespace MAMEIronWPF
             _whiteStripPWMIntensity = 254;
             var rgbLedType = NusbioPixelDeviceType.Strip59;
             var MAX_LED = (int)rgbLedType;
+            //There will be a lengthy time (20 seconds?) where the app appears to hang if there is no Nusbio board hooked up.
+            //TODO: Add an app.config setting for this (and the camera, for that matter)
             nusbioPixel = ConnectToMCU(null, MAX_LED);
             if (nusbioPixel != null)
             {
@@ -267,16 +269,17 @@ namespace MAMEIronWPF
                 Game game = (Game)lvGames.SelectedItem;
                 if (game == null) return;
                 string s = Path.Combine(_snapDirectory, game.Screenshot);
-                System.Windows.Media.ImageSource imageSource = new BitmapImage(new Uri(s));
+
+                System.Windows.Media.ImageSource imageSource = new BitmapImage();
+                if (File.Exists(s))
+                {
+                    imageSource = new BitmapImage(new Uri(s));
+                }
                 snap.Width = 330;
                 snap.Height = 274;
                 snap.MaxWidth = 330;
                 snap.MaxHeight = 274;
-#if DEBUG
-
-#else
                 snap.Source = imageSource;
-#endif
                 GameMetadata.Content = $"Year: {game.Year}   Plays: {game.PlayCount}";
             }
         }
