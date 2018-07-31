@@ -30,6 +30,7 @@ namespace MAMEIronWPF
         private string _rootDirectory;
         private string _snapDirectory;
         private string _mameExe;
+        private string _mameArgs;
         private string _gamesJson;
         private string _logFile;
 
@@ -38,11 +39,15 @@ namespace MAMEIronWPF
         private ObservableCollection<Game> _games { get; set; }
         private int _selectedIndex { get; set; }
 
+        private bool _supportNusbio;
         public NusbioPixel nusbioPixel;
         private int _whiteStripPWMIntensity;
         enum CabinetLights { On, Off};
         CabinetLights _cabinetLights;
+        //I accidentally snapped off an LED from my 60-strip of lights :(
+        private const int MAX_LED = (int)NusbioPixelDeviceType.Strip59;
 
+        private bool _supportCamera;
         public DateTime _lastMotionDetectedTime;
         private MotionDetector detector;
         private const int MOTIONTIMEOUT = 15;// 15*60; //15 minutes
@@ -57,11 +62,14 @@ namespace MAMEIronWPF
             InitializeComponent();
             _cabinetLights = CabinetLights.Off;
             _rootDirectory = ConfigurationManager.AppSettings["rootDirectory"];
+            _mameArgs = ConfigurationManager.AppSettings["MAME_Args"];
             _logFile = Path.Combine(_rootDirectory, "log.txt");
             _mameExe = Path.Combine(_rootDirectory, "MAME64.EXE");
             _snapDirectory = Path.Combine(_rootDirectory, "snap");
             _snapshots = new Dictionary<string, System.Windows.Media.ImageSource>();
             _gamesJson = Path.Combine(_rootDirectory, "games.json");
+            _supportCamera = Boolean.Parse(ConfigurationManager.AppSettings["Support_Camera"]);
+            _supportNusbio = Boolean.Parse(ConfigurationManager.AppSettings["Support_Nusbio"]);
             _utility = new Utility(_logFile);
             string errorText;
             if (!File.Exists(_mameExe))
@@ -94,23 +102,23 @@ namespace MAMEIronWPF
             Loaded += MainWindow_Loaded;
 
             _lastMotionDetectedTime = DateTime.Now.AddSeconds(20);
-            #region lights
-            _whiteStripPWMIntensity = 254;
-            var rgbLedType = NusbioPixelDeviceType.Strip59;
-            var MAX_LED = (int)rgbLedType;
-            //There will be a lengthy time (20 seconds?) where the app appears to hang if there is no Nusbio board hooked up.
-            //TODO: Add an app.config setting for this (and the camera, for that matter)
-            nusbioPixel = ConnectToMCU(null, MAX_LED);
-            if (nusbioPixel != null)
+
+            if (_supportNusbio)
             {
-                _utility.WriteToLogFile("About to turn on the cabinet lights at the beginning.");
-                //FadeIn();
-                _utility.WriteToLogFile("Done with light initialization.");
+                _whiteStripPWMIntensity = 254;
+                
+                nusbioPixel = ConnectToMCU(null, MAX_LED);
+                if (nusbioPixel != null)
+                {
+                    _utility.WriteToLogFile("About to turn on the cabinet lights at the beginning.");
+                    //FadeIn();
+                    _utility.WriteToLogFile("Done with light initialization.");
+                }
+                //_utility.WriteToLogFile("FadeIn() complete");
+                //PlaySound really only makes sense during the FadeIn sequence. If there are no lights, don't play the sound
+                PlaySound();
+                //_utility.WriteToLogFile("Intro sound was played");
             }
-            #endregion
-            //_utility.WriteToLogFile("FadeIn() complete");
-            PlaySound();
-            //_utility.WriteToLogFile("Intro sound was played");
 
 
             #region Load games from disk and bind to the ListView
@@ -122,57 +130,60 @@ namespace MAMEIronWPF
             lvGames.Focus();
             lvGames.SelectionMode = SelectionMode.Single;
             lvGames.SelectedIndex = 0;
-#endregion
+            #endregion
 
 
-#region Turn on the motion detection & voice recognition
-            AForge.Controls.VideoSourcePlayer videoSourcePlayer2 = new AForge.Controls.VideoSourcePlayer();
-//            try
-//            {
-//                detector = GetDefaultMotionDetector();
-//                //videoSourcePlayer2.VideoSource = new VideoCaptureDevice(EnumerateVideoDevices().MonikerString);
-//                videoSourcePlayer2.NewFrame += Cam_NewFrame2;
-////                videoSourcePlayer2.Start();
-//                //videoSourcePlayer2.Show();
-//                _localWebCam.Start();
+            
+            if (_supportCamera)
+            {
+                //Turn on the motion detection & voice recognition
+                AForge.Controls.VideoSourcePlayer videoSourcePlayer2 = new AForge.Controls.VideoSourcePlayer();
+                //            try
+                //            {
+                //                detector = GetDefaultMotionDetector();
+                //                //videoSourcePlayer2.VideoSource = new VideoCaptureDevice(EnumerateVideoDevices().MonikerString);
+                //                videoSourcePlayer2.NewFrame += Cam_NewFrame2;
+                ////                videoSourcePlayer2.Start();
+                //                //videoSourcePlayer2.Show();
+                //                _localWebCam.Start();
 
-//            }
-//            catch (Exception ex)
-//            {
-//                //Do nothing. There is probably no webcam hooked up.
-//            }
-            //this.LogRecognitionStart();
-            //if (this.micClient == null)
-            //{
-            //    this.CreateMicrophoneRecoClient();
-            //}
-#endregion
+                //            }
+                //            catch (Exception ex)
+                //            {
+                //                //Do nothing. There is probably no webcam hooked up.
+                //            }
+                //this.LogRecognitionStart();
+                //if (this.micClient == null)
+                //{
+                //    this.CreateMicrophoneRecoClient();
+                //}
+            }
         }
         void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             _utility.WriteToLogFile("MainWindow Loaded");
-            _localWebCamsCollection = new FilterInfoCollection(FilterCategory.VideoInputDevice);
-            if (_localWebCamsCollection.Count > 0)
+            if (_supportCamera)
             {
-                _localWebCam = new VideoCaptureDevice(_localWebCamsCollection[0].MonikerString);
-                _localWebCam.NewFrame += new NewFrameEventHandler(Cam_NewFrame);
-                //_localWebCam.Start();
+                _localWebCamsCollection = new FilterInfoCollection(FilterCategory.VideoInputDevice);
+                if (_localWebCamsCollection.Count > 0)
+                {
+                    _localWebCam = new VideoCaptureDevice(_localWebCamsCollection[0].MonikerString);
+                    _localWebCam.NewFrame += new NewFrameEventHandler(Cam_NewFrame);
+                    //_localWebCam.Start();
+                }
             }
             ToggleCabinetLights();
-        }
-        void MainWindow_Unloaded(object sender, RoutedEventArgs e)
-        {
         }
 
         private void StartGame(Game game, string method)
         {
             nusbioPixel?.SetStrip(Color.Beige, 0);
             //videoSourcePlayer2.NewFrame -= Cam_NewFrame2;
-            string st = _mameExe; // +" -video ddraw pacman";
+            string st = _mameExe;
             Process process = new Process();
             process.StartInfo.FileName = st;
             process.StartInfo.WorkingDirectory = _rootDirectory;
-            process.StartInfo.Arguments = game.Name + " -autosave -skip_gameinfo -video d3d";
+            process.StartInfo.Arguments = game.Name + " " + _mameArgs;
             process.StartInfo.UseShellExecute = true;
             process.Start();
             process.WaitForExit();
@@ -195,7 +206,6 @@ namespace MAMEIronWPF
             _utility.WriteToLogFile($"Games persisted to games.json.");
             //_lastMotionDetectedTime = DateTime.Now;
             //videoSourcePlayer2.NewFrame += Cam_NewFrame2;
-            //nusbioPixel?.SetStrip(Color.RoyalBlue, 64);
             nusbioPixel?.SetStrip(70, 191, 238, 64);
 
             //TODO: This was previously here...not sure we need it after every "StartGame()" or if it's okay to just have it once at app startup.
@@ -213,7 +223,6 @@ namespace MAMEIronWPF
                 sr.Close();
                 sr.Dispose();
                 _games = new ObservableCollection<Game>();
-                //_games = JsonConvert.DeserializeObject<ObservableCollection<Game>>(json);
                 List<Game> tempGames = JsonConvert.DeserializeObject<List<Game>>(json); ;
                 foreach (Game g in tempGames)
                 {
@@ -224,7 +233,8 @@ namespace MAMEIronWPF
                 }
             }
         }
-#region unused stuff from Planerator
+
+        #region unused stuff from Planerator. May or not be safe to remove
         private void xSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             xx.Content = xSlider.Value;
@@ -241,7 +251,8 @@ namespace MAMEIronWPF
         {
             ff.Content = fovSlider.Value;
         }
-#endregion
+
+        #endregion
         private void PersistGameChanges()
         {
             using (StreamWriter sw = new StreamWriter(_gamesJson, false))
@@ -283,7 +294,8 @@ namespace MAMEIronWPF
                 GameMetadata.Content = $"Year: {game.Year}   Plays: {game.PlayCount}";
             }
         }
-#region keyboard handler
+
+        #region keyboard handler
         //It's "Key" to note (see what I did there?) that the lvGames_SelectionChanged is fired before the KeyDown
         private void lvGames_KeyDown(object sender, KeyEventArgs e)
         {
@@ -399,7 +411,8 @@ namespace MAMEIronWPF
 
         }
 #endregion
-#region Lights
+
+        #region Lights
         void ToggleMarqueeLights()
         {
             if (nusbioPixel == null) return;
@@ -608,7 +621,8 @@ namespace MAMEIronWPF
             }
         }
 #endregion
-#region WebCam
+
+        #region WebCam
         //private FilterInfo EnumerateVideoDevices()
         //{
         //    //enumerate video devices
@@ -649,7 +663,8 @@ namespace MAMEIronWPF
             }
         }
 #endregion
-#region Motion Detection
+
+        #region Motion Detection
         void Cam_NewFrame(object sender, NewFrameEventArgs eventArgs)
         {
             try
@@ -784,7 +799,8 @@ namespace MAMEIronWPF
             return (motionDetector);
         }
 #endregion
-#region Audio
+
+        #region Audio
         private delegate void PlaySoundDelegate();
         private void PlaySound()
         {
