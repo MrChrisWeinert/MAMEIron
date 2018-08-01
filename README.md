@@ -20,8 +20,7 @@ MAMEIron is a Windows-based MAME Front-end built in WPF.
 
 ## Notes:
 1) The very first time you run MAMEIron, it will use the MAME executable to generate an XML list of all the supported games.
-MAMEIron will then filter down that list to exclude a games based on certain criteria. (See the source code for details)
-This process will take a few minutes and ultimately generates a games.json file. This is a one-time process and subsequent launches of MAMEIron are fast.
+MAMEIron will then filter down that list to exclude games based on certain criteria. (See the source code for details) This is a one-time process and subsequent launches of MAMEIron are fast.
 2) MAMEIron was designed to run at 1680x1050. It will look weird at other resolutions.
 
 Credits:
