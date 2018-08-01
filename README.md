@@ -2,7 +2,7 @@
 MAMEIron is a Windows-based MAME Front-end built in WPF.
 - It displays the year and playcount per-game.
 - You can add games to your favorites, which appear at the top of the game list.
-- There is support for LED light control (via Nusbio control board)
+- If a [Nusbio](https://squareup.com/market/madeintheusb-dot-net/item/nusbiomcu) control board is present, MAMEIron can control LED lights during various functions.
 - If a webcam is present, MAMEIron will sleep after a period of inactivity, and wake up when motion is detected. Also, by way of the webcam's mic, there is some voice-control functionality as well!
 
 
