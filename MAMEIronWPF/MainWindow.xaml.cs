@@ -19,6 +19,7 @@ using AForge.Vision.Motion;
 using AForge.Video;
 using System.Threading;
 
+
 namespace MAMEIronWPF
 {
     /// <summary>
@@ -54,9 +55,13 @@ namespace MAMEIronWPF
         private VideoCaptureDevice _localWebCam;
         private static System.Timers.Timer _opacityTimer;
 
-        private Utility _utility;
+        private Logger _logger;
         public int _konamiCounter = 0;
         private Key[] KonamiCode = new Key[11];
+
+        private DateTime _startTimeD1Press;
+        private DateTime _startTimeEscPress;
+        private const int LONGPRESSSECONDS = 2;
 
         public MainWindow()
         {
@@ -82,13 +87,15 @@ namespace MAMEIronWPF
             _gamesJson = Path.Combine(_rootDirectory, "games.json");
             _supportCamera = Boolean.Parse(ConfigurationManager.AppSettings["Support_Camera"]);
             _supportNusbio = Boolean.Parse(ConfigurationManager.AppSettings["Support_Nusbio"]);
-            _utility = new Utility(_logFile);
+            _logger = new Logger(_logFile);
+
+            Boolean.Parse(ConfigurationManager.AppSettings["Support_Nusbio"]);
             string errorText;
             if (!File.Exists(_mameExe))
             {
                 errorText = $"{_mameExe} does not exist.";
                 MessageBox.Show(errorText, "Fatal Error");
-                _utility.WriteToLogFile(errorText);
+                _logger.LogException(errorText, new Exception("MAME executable not found"));
                 Environment.Exit(1);
             }
             else if (!File.Exists(_gamesJson))
@@ -100,14 +107,14 @@ namespace MAMEIronWPF
             {
                 errorText = $"{_snapDirectory} does not exist.";
                 MessageBox.Show(errorText, "Fatal Error");
-                _utility.WriteToLogFile(errorText);
+                _logger.LogException(errorText, new Exception("Snap directory not found"));
                 Environment.Exit(1);
             }
 
             Application.Current.MainWindow.Left = 0;
             Application.Current.MainWindow.Top = 0;
             HideMouse();
-            _utility.WriteToLogFile("Starting MAME");
+            _logger.LogInfo("Starting MAME");
 
             Loaded += MainWindow_Loaded;
 
@@ -120,14 +127,14 @@ namespace MAMEIronWPF
                 nusbioPixel = ConnectToMCU(null, MAX_LED);
                 if (nusbioPixel != null)
                 {
-                    _utility.WriteToLogFile("About to turn on the cabinet lights at the beginning.");
+                    _logger.LogVerbose("About to turn on the cabinet lights at the beginning.");
                     //FadeIn();
-                    _utility.WriteToLogFile("Done with light initialization.");
+                    _logger.LogVerbose("Done with light initialization.");
                 }
-                //_utility.WriteToLogFile("FadeIn() complete");
+                //_logger.WriteToLogFile("FadeIn() complete");
                 //PlaySound really only makes sense during the FadeIn sequence. If there are no lights, don't play the sound
                 PlaySound();
-                //_utility.WriteToLogFile("Intro sound was played");
+                //_logger.WriteToLogFile("Intro sound was played");
             }
 
 
@@ -171,7 +178,7 @@ namespace MAMEIronWPF
         }
         void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            _utility.WriteToLogFile("MainWindow Loaded");
+            _logger.LogVerbose("MainWindow Loaded");
             if (_supportCamera)
             {
                 _localWebCamsCollection = new FilterInfoCollection(FilterCategory.VideoInputDevice);
@@ -203,17 +210,17 @@ namespace MAMEIronWPF
             }
             else
             {
-                _utility.WriteToLogFile($"Couldn't start game: {game.Name} via {st}.");
+                _logger.LogInfo($"Couldn't start game: {game.Name} via {st}.");
                 _games.Remove(game);
                 //Rebind since we removed a game.
                 lvGames.ItemsSource = _games.OrderByDescending(x => x.IsFavorite).ThenBy(x => x.Description);
                 lvGames.Items.Refresh();
 
-                _utility.WriteToLogFile($"Removed {game.Name} from games list.");
+                _logger.LogInfo($"Removed {game.Name} from games list.");
             }
             process.Close();
             PersistGameChanges();
-            _utility.WriteToLogFile($"Games persisted to games.json.");
+            _logger.LogVerbose($"Games persisted to games.json.");
             //_lastMotionDetectedTime = DateTime.Now;
             //videoSourcePlayer2.NewFrame += Cam_NewFrame2;
             nusbioPixel?.SetStrip(70, 191, 238, 64);
@@ -336,30 +343,15 @@ namespace MAMEIronWPF
                 {
                     switch (e.Key)
                     {
+                        case Key.Escape:
+                            break;
                         case Key.D1:
-                            StartGame((Game)lvGames.SelectedItem, "button");
                             break;
                         case Key.LeftCtrl:
                             _ctrlcount++;
                             if (_ctrlcount == 3)
                             {
-                                Game g = (Game)lvGames.SelectedItem;
-                                //string desc = ((Game)lvGames.SelectedItem).Description;
-                                ((Game)lvGames.SelectedItem).ToggleFavorite();
-                                PersistGameChanges();
-
-                                lvGames.ItemsSource = _games.OrderByDescending(x => x.IsFavorite).ThenBy(x => x.Description);
-                                lvGames.Items.Refresh();
-
-                                if (lvGames.SelectedIndex <= 0 && _selectedIndex > 0)
-                                {
-                                    lvGames.SelectedIndex = _selectedIndex;
-                                }
-                                //int i = lvGames.Items.IndexOf(g);
-                                //lvGames.SelectedIndex = i;
-                                //lvGames.InvalidateProperty(ListView.ItemsSourceProperty);
-                                //lvGames.ItemsSource = Games;
-                                _ctrlcount = 0;
+                                ToggleFavorite();
                             }
                             break;
                         case Key.LeftAlt:
@@ -384,7 +376,7 @@ namespace MAMEIronWPF
                         //Thread.Sleep(5000);
                         //if (_voiceGameList == null)
                         //{
-                        //    _utility.WriteToLogFile("The voiceToTtext button was pressed, but no games were in the _voiceGameList.");
+                        //    _logger.WriteToLogFile("The voiceToTtext button was pressed, but no games were in the _voiceGameList.");
                         //    videoSourcePlayer2.NewFrame += Cam_NewFrame2;
                         //}
                         //else if (_voiceGameList.Count == 1)
@@ -402,7 +394,7 @@ namespace MAMEIronWPF
                         //}
                         //else
                         //{
-                        //    _utility.WriteToLogFile("The voiceToTtext button was pressed, but no games were in the _voiceGameList.");
+                        //    _logger.WriteToLogFile("The voiceToTtext button was pressed, but no games were in the _voiceGameList.");
                         //    videoSourcePlayer2.NewFrame += Cam_NewFrame2;
                         //}
                         //break;
@@ -423,25 +415,125 @@ namespace MAMEIronWPF
             }
             catch (Exception ex)
             {
-                _utility.WriteToLogFile("Exception in lvGames_KeyDown: " + ex.ToString());
+                _logger.LogException("Exception in lvGames_KeyDown", ex);
             }
-        }        
+        }
+
+        private void ToggleFavorite()
+        {
+            Game g = (Game)lvGames.SelectedItem;
+            //string desc = ((Game)lvGames.SelectedItem).Description;
+            ((Game)lvGames.SelectedItem).ToggleFavorite();
+            PersistGameChanges();
+
+            lvGames.ItemsSource = _games.OrderByDescending(x => x.IsFavorite).ThenBy(x => x.Description);
+            lvGames.Items.Refresh();
+
+            if (lvGames.SelectedIndex <= 0 && _selectedIndex > 0)
+            {
+                lvGames.SelectedIndex = _selectedIndex;
+            }
+            //int i = lvGames.Items.IndexOf(g);
+            //lvGames.SelectedIndex = i;
+            //lvGames.InvalidateProperty(ListView.ItemsSourceProperty);
+            //lvGames.ItemsSource = Games;
+            _ctrlcount = 0;
+        }
 
         private void lvGames_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-            _utility.WriteToLogFile("down pressed...");
-            //This will bypass the actual KeyDown event.
-            //e.Handled = false;
+            switch (e.Key)
+            {
+                case Key.D1:
+                    //If we're coming in with a new button press, save the exact time that the button was pressed.
+                    if (_startTimeD1Press == new DateTime(0))
+                    {
+                        _logger.LogVerbose("_startTimeD1Press was Zero so we just set it...");
+                        _startTimeD1Press = DateTime.Now;
+                    }
+
+                    //If the button has been held down for < 2 seconds, do nothing. This is a Short-press and the action will happen in PreviewKeyUp
+                    if (DateTime.Now < _startTimeD1Press.AddSeconds(LONGPRESSSECONDS))
+                    {
+                        //Short-press
+                        //Do nothing...action will hapen in PreviewKeyUp
+                    }
+                    //If the button is being held down, but the start time is this arbitrary number I chose, then the game has already been toggled, and we're just waiting for the user
+                    // to release the button. It'd be fun to measure reaction times here :)
+                    else if (_startTimeD1Press == new DateTime(1))
+                    {
+                        //Do nothing....this means the game has been toggled, but the person has not yet released the button.
+                        _logger.LogVerbose("Release the Kraken!");
+                    }
+                    //If the button has been held down for 2 seconds or longer, Toggle the favorite.
+                    //We need to provide an indicator to the user (visually, via the Pac-Man favorite icon [ooohhh...maybe audio too?), so he/she knows to let go of the button.
+                    else
+                    {
+                        //Long-press
+                        _logger.LogVerbose("D1 was long-pressed in PreviewkeyDown.");
+                        _logger.LogVerbose("Toggling Favorite in PreviewkeyDown.");
+                        ToggleFavorite();
+                        _logger.LogVerbose("Reset D1 Start Time to zero in PreviewkeyDown.");
+                        //This is where the arbitrary time value gets set.
+                        _startTimeD1Press = new DateTime(1);
+                    }                    
+                    break;
+                case Key.Escape:
+                    _logger.LogVerbose("PreviewKeyDown...Escape");
+                    //If we're coming in with a new button press, save the exact time that the button was pressed.
+                    if (_startTimeEscPress == new DateTime(0))
+                    {
+                        _logger.LogVerbose("_startTimeEscPress was Zero so we just set it...");
+                        _startTimeEscPress = DateTime.Now;
+                    }
+                    break;
+            }
         }
 
         private void lvGames_PreviewKeyUp(object sender, KeyEventArgs e)
         {
-            _utility.WriteToLogFile("down keyUp...");
-
-
+            switch (e.Key)
+            {
+                case Key.D1:
+                    //If the person lets go of the button, and this arbitrary value is set, do nothing.
+                    //This means it was a long-press and the game has already been toggled in the PreviewKeyDown event.
+                    if (_startTimeD1Press == new DateTime(1))
+                    {                        
+                        _logger.LogVerbose("We just toggled a game in PreviewKeyDown, so this D1 PreviewkeyUp event should be ignored.");
+                        _logger.LogVerbose("Reset D1 Start Time to zero in PreviewkeyUp: A.");
+                        //Reset the button press timer back to zero.
+                        _startTimeD1Press = new DateTime(0);
+                    }
+                    //If the person lets go of the button and it's been under (2?) seconds, it was a short press. We need to start the game.
+                    else if (DateTime.Now < _startTimeD1Press.AddSeconds(LONGPRESSSECONDS))
+                    {
+                        //Short-press
+                        _logger.LogVerbose("D1 was short-pressed in PreviewkeyUp...");
+                        _logger.LogVerbose("Starting game in PreviewkeyUp...");
+                        StartGame((Game)lvGames.SelectedItem, "button");
+                        _logger.LogVerbose("Reset D1 Start Time to zero in PreviewkeyUp: B.");
+                        //Reset the button press timer back to zero.
+                        _startTimeD1Press = new DateTime(0);
+                    }                    
+                    break;
+                case Key.Escape:
+                    if (DateTime.Now < _startTimeEscPress.AddSeconds(LONGPRESSSECONDS))
+                    {
+                        //Short-press
+                        _logger.LogVerbose("Escape was short-pressed in PreviewkeyUp...");
+                        //Do nothing in this case.
+                    }
+                    else
+                    {
+                        //Long-press
+                        _logger.LogVerbose("Escape was long-pressed in PreviewkeyUp...");
+                        //Exit MAMEIron, or possibly Windows.
+                    }
+                    _startTimeEscPress = new DateTime(0);
+                    break;
+            }
             _selectedIndex = lvGames.SelectedIndex;
             Game g = (Game)lvGames.SelectedItem;
-
         }
 #endregion
 
@@ -449,10 +541,10 @@ namespace MAMEIronWPF
         void ToggleMarqueeLights()
         {
             if (nusbioPixel == null) return;
-            _utility.WriteToLogFile("In ToggleMarqueeLights()");
+            _logger.LogVerbose("In ToggleMarqueeLights()");
             //initial starting brightness is 128?
             nusbioPixel.SetBrightness(64 * 2);
-            _utility.WriteToLogFile("_whiteStripPWMIntensity: " + _whiteStripPWMIntensity.ToString());
+            _logger.LogVerbose("_whiteStripPWMIntensity: " + _whiteStripPWMIntensity.ToString());
             if (_whiteStripPWMIntensity < 255)
             {
                 var r = nusbioPixel.AnalogWrite(Mcu.GpioPwmPin.Gpio5, _whiteStripPWMIntensity);
@@ -460,7 +552,7 @@ namespace MAMEIronWPF
         }
         void _opacityTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
-            _utility.WriteToLogFile("in _opacityTimer_Elapsed()");
+            _logger.LogVerbose("in _opacityTimer_Elapsed()");
             System.Timers.Timer t = (System.Timers.Timer)sender;
             if (this.Opacity < 1)
             {
@@ -468,27 +560,27 @@ namespace MAMEIronWPF
             }
             else
             {
-                _utility.WriteToLogFile("Opacity Timer Disabled.");
+                _logger.LogVerbose("Opacity Timer Disabled.");
                 t.Enabled = false;
             }
         }
         private void ChangeOpacity()
         {
-            _utility.WriteToLogFile("In ChangeOpacity()");
+            _logger.LogVerbose("In ChangeOpacity()");
             this.Opacity += .00568;
             if (nusbioPixel == null) return;
             nusbioPixel.SetBrightness(64 * 2);            
             if (_whiteStripPWMIntensity >= 255) return;
             if (this.Opacity > .08 && this.Opacity < .5)
             {
-                _utility.WriteToLogFile("opacity > .08 and < .5)");
+                _logger.LogVerbose("opacity > .08 and < .5)");
                 _whiteStripPWMIntensity++;
                 Debug.WriteLine(_whiteStripPWMIntensity);
                 var r = nusbioPixel.AnalogWrite(Mcu.GpioPwmPin.Gpio5, _whiteStripPWMIntensity);
             }
             else if (this.Opacity >= .5)
             {
-                _utility.WriteToLogFile("opacity > .5)");
+                _logger.LogVerbose("opacity > .5)");
                 _whiteStripPWMIntensity += 2;
                 Debug.WriteLine(_whiteStripPWMIntensity);
                 if (_whiteStripPWMIntensity < 255)
@@ -499,7 +591,7 @@ namespace MAMEIronWPF
         }
         private void FadeIn()
         {
-            _utility.WriteToLogFile("In FadeIn()");
+            _logger.LogVerbose("In FadeIn()");
             this.Opacity = 0;
             _opacityTimer = new System.Timers.Timer();
             _opacityTimer.Interval = 125;
@@ -512,7 +604,7 @@ namespace MAMEIronWPF
             if (nusbioPixel == null) return;
             if (_cabinetLights == CabinetLights.On)
             {
-                _utility.WriteToLogFile("Cabinet lights are currently on. Turning them off.");
+                _logger.LogVerbose("Cabinet lights are currently on. Turning them off.");
                 //Color doesn't matter here...set the intensity to zero
                 nusbioPixel?.SetStrip(70, 191, 238, 0);
                 ToggleMarqueeLights();
@@ -520,7 +612,7 @@ namespace MAMEIronWPF
             }
             else
             {
-                _utility.WriteToLogFile("Cabinet lights are currently off. Turning them on.");
+                _logger.LogVerbose("Cabinet lights are currently off. Turning them on.");
                 nusbioPixel?.SetStrip(70, 191, 238, 64);
                 ToggleMarqueeLights();
                 _cabinetLights = CabinetLights.On;
@@ -536,8 +628,8 @@ namespace MAMEIronWPF
             var comPort = new NusbioPixel().DetectMcuComPort();
             if (comPort == null)
             {
-                Utility _utility = new Utility(Path.Combine(ConfigurationManager.AppSettings["rootDirectory"], "log.txt"));
-                _utility.WriteToLogFile("Nusbio Pixel not detected.");
+                Logger _logger = new Logger(Path.Combine(ConfigurationManager.AppSettings["rootDirectory"], "log.txt"));
+                _logger.LogInfo("Nusbio Pixel not detected.");
                 return null;
             }
             nusbioPixel = new NusbioPixel(maxLed, comPort);
@@ -756,9 +848,9 @@ namespace MAMEIronWPF
                     this.Opacity = 0;
                     nusbioPixel?.AnalogWrite(Mcu.GpioPwmPin.Gpio5, 0);
                     nusbioPixel?.SetStrip(Color.Beige, 20);
-                    _utility.WriteToLogFile($"Turn Arcade Machine Off at {DateTime.Now}. _lastMotionDetectedTime: {_lastMotionDetectedTime}");
+                    _logger.LogInfo($"Turn Arcade Machine Off at {DateTime.Now}. _lastMotionDetectedTime: {_lastMotionDetectedTime}");
                     _cabinetLights = CabinetLights.Off;
-                _utility.WriteToLogFile("Cabinet lights were toggled off.");
+                    _logger.LogVerbose("Cabinet lights were toggled off.");
                 }
             //}
         }
