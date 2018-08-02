@@ -55,9 +55,22 @@ namespace MAMEIronWPF
         private static System.Timers.Timer _opacityTimer;
 
         private Utility _utility;
+        public int _konamiCounter = 0;
+        private Key[] KonamiCode = new Key[11];
 
         public MainWindow()
         {
+            KonamiCode[0] = Key.R;
+            KonamiCode[1] = Key.R;
+            KonamiCode[2] = Key.F;
+            KonamiCode[3] = Key.F;
+            KonamiCode[4] = Key.D;
+            KonamiCode[5] = Key.G;
+            KonamiCode[6] = Key.D;
+            KonamiCode[7] = Key.G;
+            KonamiCode[8] = Key.A;
+            KonamiCode[9] = Key.S;
+            KonamiCode[10] = Key.D1;
             InitializeComponent();
             _cabinetLights = CabinetLights.Off;
             _rootDirectory = ConfigurationManager.AppSettings["rootDirectory"];
@@ -296,94 +309,117 @@ namespace MAMEIronWPF
         //It's "Key" to note (see what I did there?) that the lvGames_SelectionChanged is fired before the KeyDown
         private void lvGames_KeyDown(object sender, KeyEventArgs e)
         {
+            if (_konamiCounter > 10)
+            {
+                _konamiCounter = 0;
+                Contra.Opacity = 0;
+            }
             try
             {
-                switch (e.Key)
+                if (KonamiCode[_konamiCounter] == e.Key)
                 {
-                    case Key.D1:
-                        StartGame((Game)lvGames.SelectedItem, "button");
-                        break;
-                    case Key.LeftCtrl:
-                        _ctrlcount++;
-                        if (_ctrlcount == 3)
-                        {
-                            Game g = (Game)lvGames.SelectedItem;
-                            //string desc = ((Game)lvGames.SelectedItem).Description;
-                            ((Game)lvGames.SelectedItem).ToggleFavorite();
-                            PersistGameChanges();
-
-                            lvGames.ItemsSource = _games.OrderByDescending(x => x.IsFavorite).ThenBy(x => x.Description);
-                            lvGames.Items.Refresh();
-
-                            if (lvGames.SelectedIndex <= 0 && _selectedIndex > 0)
-                            {
-                                lvGames.SelectedIndex = _selectedIndex;
-                            }
-                            //int i = lvGames.Items.IndexOf(g);
-                            //lvGames.SelectedIndex = i;
-                            //lvGames.InvalidateProperty(ListView.ItemsSourceProperty);
-                            //lvGames.ItemsSource = Games;
-                            _ctrlcount = 0;
-                        }
-                        break;
-                    case Key.LeftAlt:
-                        break;
-                    case Key.Space:
-                        break;
-                    case Key.LeftShift:
-                        break;
-                    case Key.Z:
-                        break;
-                    case Key.X:
-                        break;
-                    case Key.Up:
-                        break;
-                    case Key.Down:
-                        break;
-                    case Key.A:
-                    //videoSourcePlayer2.NewFrame -= Cam_NewFrame2;
-                    //var tasks = new List<Task<bool>>();
-                    //tasks.Add(Task<bool>.Factory.StartNew(GetVoiceTextReg));
-                    //Task.WaitAll(tasks.ToArray());
-                    //Thread.Sleep(5000);
-                    //if (_voiceGameList == null)
-                    //{
-                    //    _utility.WriteToLogFile("The voiceToTtext button was pressed, but no games were in the _voiceGameList.");
-                    //    videoSourcePlayer2.NewFrame += Cam_NewFrame2;
-                    //}
-                    //else if (_voiceGameList.Count == 1)
-                    //{
-                    //    StartGame(_voiceGameList[0], "voice");
-                    //    videoSourcePlayer2.NewFrame += Cam_NewFrame2;
-                    //}
-                    //else if (_voiceGameList.Count > 1)
-                    //{
-                    //    gameList.Visible = false;
-                    //    snaps.Visible = false;
-                    //    favoriteList.Visible = false;
-                    //    this.Enabled = false;
-                    //    Form f = new FuzzyGameSelectForm(this, _voiceGameList);
-                    //}
-                    //else
-                    //{
-                    //    _utility.WriteToLogFile("The voiceToTtext button was pressed, but no games were in the _voiceGameList.");
-                    //    videoSourcePlayer2.NewFrame += Cam_NewFrame2;
-                    //}
-                    //break;
-                    case Key.V:
-                        //ShowDialog();
-                        //lvGames.Visible = false;
-                        //snaps.Visible = false;
-                        //favoriteList.Visible = false;
-                        //this.Enabled = false;
-
-                        //videoSourcePlayer2.NewFrame -= Cam_NewFrame2;
-                        //MenuForm menuForm = new MenuForm(this);
-                        //menuForm.StartPosition = FormStartPosition.CenterScreen;
-                        //menuForm.Visible = true;
-                        break;
+                    _konamiCounter++;
                 }
-                //HideMouse();
+                else
+                {
+                    //reset
+                    _konamiCounter = 0;
+                }
+                if (_konamiCounter > 10)
+                {
+                    //Easter egg!
+                    e.Handled = true;
+                    Contra.Opacity = 1;
+                }
+                
+                if (!e.Handled)
+                {
+                    switch (e.Key)
+                    {
+                        case Key.D1:
+                            StartGame((Game)lvGames.SelectedItem, "button");
+                            break;
+                        case Key.LeftCtrl:
+                            _ctrlcount++;
+                            if (_ctrlcount == 3)
+                            {
+                                Game g = (Game)lvGames.SelectedItem;
+                                //string desc = ((Game)lvGames.SelectedItem).Description;
+                                ((Game)lvGames.SelectedItem).ToggleFavorite();
+                                PersistGameChanges();
+
+                                lvGames.ItemsSource = _games.OrderByDescending(x => x.IsFavorite).ThenBy(x => x.Description);
+                                lvGames.Items.Refresh();
+
+                                if (lvGames.SelectedIndex <= 0 && _selectedIndex > 0)
+                                {
+                                    lvGames.SelectedIndex = _selectedIndex;
+                                }
+                                //int i = lvGames.Items.IndexOf(g);
+                                //lvGames.SelectedIndex = i;
+                                //lvGames.InvalidateProperty(ListView.ItemsSourceProperty);
+                                //lvGames.ItemsSource = Games;
+                                _ctrlcount = 0;
+                            }
+                            break;
+                        case Key.LeftAlt:
+                            break;
+                        case Key.Space:
+                            break;
+                        case Key.LeftShift:
+                            break;
+                        case Key.Z:
+                            break;
+                        case Key.X:
+                            break;
+                        case Key.Up:
+                            break;
+                        case Key.Down:
+                            break;
+                        case Key.A:
+                        //videoSourcePlayer2.NewFrame -= Cam_NewFrame2;
+                        //var tasks = new List<Task<bool>>();
+                        //tasks.Add(Task<bool>.Factory.StartNew(GetVoiceTextReg));
+                        //Task.WaitAll(tasks.ToArray());
+                        //Thread.Sleep(5000);
+                        //if (_voiceGameList == null)
+                        //{
+                        //    _utility.WriteToLogFile("The voiceToTtext button was pressed, but no games were in the _voiceGameList.");
+                        //    videoSourcePlayer2.NewFrame += Cam_NewFrame2;
+                        //}
+                        //else if (_voiceGameList.Count == 1)
+                        //{
+                        //    StartGame(_voiceGameList[0], "voice");
+                        //    videoSourcePlayer2.NewFrame += Cam_NewFrame2;
+                        //}
+                        //else if (_voiceGameList.Count > 1)
+                        //{
+                        //    gameList.Visible = false;
+                        //    snaps.Visible = false;
+                        //    favoriteList.Visible = false;
+                        //    this.Enabled = false;
+                        //    Form f = new FuzzyGameSelectForm(this, _voiceGameList);
+                        //}
+                        //else
+                        //{
+                        //    _utility.WriteToLogFile("The voiceToTtext button was pressed, but no games were in the _voiceGameList.");
+                        //    videoSourcePlayer2.NewFrame += Cam_NewFrame2;
+                        //}
+                        //break;
+                        case Key.V:
+                            //ShowDialog();
+                            //lvGames.Visible = false;
+                            //snaps.Visible = false;
+                            //favoriteList.Visible = false;
+                            //this.Enabled = false;
+
+                            //videoSourcePlayer2.NewFrame -= Cam_NewFrame2;
+                            //MenuForm menuForm = new MenuForm(this);
+                            //menuForm.StartPosition = FormStartPosition.CenterScreen;
+                            //menuForm.Visible = true;
+                            break;
+                    }
+                }
             }
             catch (Exception ex)
             {

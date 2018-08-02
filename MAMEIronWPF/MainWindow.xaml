@@ -131,7 +131,6 @@
                     </TransformGroup>
                 </Label.RenderTransform>
             </Label>
-
             <StackPanel Grid.Column="2" Margin="252,34,8,158" Orientation="Horizontal">
                 <Label Content="m" Width="66" FontFamily="PacFont Good" FontSize="72" Foreground="#FF46BFEE"/>
                 <Label Content="AME" Margin="-9,0,0,0" Width="240" FontFamily="PacFont Good" FontSize="72" Foreground="Black"/>
@@ -141,6 +140,7 @@
                 <Label Content="::::::" Width="184" FontFamily="PacFont Good" FontSize="72" Foreground="Black" Background="{x:Null}" />
                 <Label Content="9" Width="66" FontFamily="PacFont Good" FontSize="72" Foreground="#FFEA82E5"/>
             </StackPanel>
+            <Image Source="Contra3.jpg" x:Name="Contra" Width="1680" Height="1050" Panel.ZIndex="88" Grid.ColumnSpan="3" Grid.RowSpan="3" Opacity="0"/>
         </Grid>
     </Grid>
 </Window>
