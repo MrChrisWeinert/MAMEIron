@@ -486,6 +486,19 @@ namespace MAMEIronWPF
                         _logger.LogVerbose("_startTimeEscPress was Zero so we just set it...");
                         _startTimeEscPress = DateTime.Now;
                     }
+                    //If the button has been held down for 2 seconds or longer, trigger the Exit Window
+                    else
+                    {
+                        e.Handled = true;
+                        //Long-press
+                        _logger.LogVerbose("Escape was long-pressed in PreviewkeyDown.");
+                        ExitWindow exitWindow = new ExitWindow();
+                        exitWindow.Show();
+                        exitWindow.ExitListView.Focus();
+                        _logger.LogVerbose("Reset Escape Start Time to zero in PreviewkeyDown.");
+                        //This is where the arbitrary time value gets set.
+                        _startTimeEscPress = new DateTime(1);
+                    }
                     break;
             }
         }
@@ -526,7 +539,12 @@ namespace MAMEIronWPF
                     else
                     {
                         //Long-press
-                        _logger.LogVerbose("Escape was long-pressed in PreviewkeyUp...");
+                        //probably do nothing here.
+
+
+                        //_logger.LogVerbose("Escape was long-pressed in PreviewkeyUp...");
+                        //ExitWindow exitWindow = new ExitWindow();
+                        //exitWindow.Show();                        
                         //Exit MAMEIron, or possibly Windows.
                     }
                     _startTimeEscPress = new DateTime(0);
