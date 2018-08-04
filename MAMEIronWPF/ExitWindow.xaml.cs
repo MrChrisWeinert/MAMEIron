@@ -28,7 +28,7 @@ namespace MAMEIronWPF
             {
                 //do nothing
             }
-            else if (e.Key == Key.Escape)
+            else if (e.Key == Key.V)
             {
                 Close();
             }

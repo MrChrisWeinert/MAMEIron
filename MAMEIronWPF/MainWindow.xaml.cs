@@ -59,8 +59,8 @@ namespace MAMEIronWPF
         public int _konamiCounter = 0;
         private Key[] KonamiCode = new Key[11];
 
-        private DateTime _startTimeD1Press;
-        private DateTime _startTimeEscPress;
+        private DateTime _startTimeCPress;
+        private DateTime _startTimeVPress;
         private const int LONGPRESSSECONDS = 2;
 
         public MainWindow()
@@ -75,7 +75,7 @@ namespace MAMEIronWPF
             KonamiCode[7] = Key.G;
             KonamiCode[8] = Key.A;
             KonamiCode[9] = Key.S;
-            KonamiCode[10] = Key.D1;
+            KonamiCode[10] = Key.C;
             InitializeComponent();
             _cabinetLights = CabinetLights.Off;
             _rootDirectory = ConfigurationManager.AppSettings["rootDirectory"];
@@ -114,8 +114,8 @@ namespace MAMEIronWPF
             Application.Current.MainWindow.Left = 0;
             Application.Current.MainWindow.Top = 0;
             HideMouse();
+            _logger.LogInfo("===============================================================================");
             _logger.LogInfo("Starting MAME");
-
             Loaded += MainWindow_Loaded;
 
             _lastMotionDetectedTime = DateTime.Now.AddSeconds(20);
@@ -343,9 +343,9 @@ namespace MAMEIronWPF
                 {
                     switch (e.Key)
                     {
-                        case Key.Escape:
+                        case Key.V:
                             break;
-                        case Key.D1:
+                        case Key.C:
                             break;
                         case Key.LeftCtrl:
                             _ctrlcount++;
@@ -367,6 +367,7 @@ namespace MAMEIronWPF
                         case Key.Up:
                             break;
                         case Key.Down:
+                            _logger.LogVerbose("Down in KeyDown.");
                             break;
                         case Key.A:
                         //videoSourcePlayer2.NewFrame -= Cam_NewFrame2;
@@ -397,19 +398,7 @@ namespace MAMEIronWPF
                         //    _logger.WriteToLogFile("The voiceToTtext button was pressed, but no games were in the _voiceGameList.");
                         //    videoSourcePlayer2.NewFrame += Cam_NewFrame2;
                         //}
-                        //break;
-                        case Key.V:
-                            //ShowDialog();
-                            //lvGames.Visible = false;
-                            //snaps.Visible = false;
-                            //favoriteList.Visible = false;
-                            //this.Enabled = false;
-
-                            //videoSourcePlayer2.NewFrame -= Cam_NewFrame2;
-                            //MenuForm menuForm = new MenuForm(this);
-                            //menuForm.StartPosition = FormStartPosition.CenterScreen;
-                            //menuForm.Visible = true;
-                            break;
+                        break;
                     }
                 }
             }
@@ -442,25 +431,26 @@ namespace MAMEIronWPF
 
         private void lvGames_PreviewKeyDown(object sender, KeyEventArgs e)
         {
+            _logger.LogVerbose($"{e.Key.ToString()} pressed in PreviewKeyDown");
             switch (e.Key)
             {
-                case Key.D1:
+                case Key.C:
                     //If we're coming in with a new button press, save the exact time that the button was pressed.
-                    if (_startTimeD1Press == new DateTime(0))
+                    if (_startTimeCPress == new DateTime(0))
                     {
-                        _logger.LogVerbose("_startTimeD1Press was Zero so we just set it...");
-                        _startTimeD1Press = DateTime.Now;
+                        _logger.LogVerbose("_startTimeCPress was Zero so we just set it...");
+                        _startTimeCPress = DateTime.Now;
                     }
 
                     //If the button has been held down for < 2 seconds, do nothing. This is a Short-press and the action will happen in PreviewKeyUp
-                    if (DateTime.Now < _startTimeD1Press.AddSeconds(LONGPRESSSECONDS))
+                    if (DateTime.Now < _startTimeCPress.AddSeconds(LONGPRESSSECONDS))
                     {
                         //Short-press
                         //Do nothing...action will hapen in PreviewKeyUp
                     }
                     //If the button is being held down, but the start time is this arbitrary number I chose, then the game has already been toggled, and we're just waiting for the user
                     // to release the button. It'd be fun to measure reaction times here :)
-                    else if (_startTimeD1Press == new DateTime(1))
+                    else if (_startTimeCPress == new DateTime(1))
                     {
                         //Do nothing....this means the game has been toggled, but the person has not yet released the button.
                         _logger.LogVerbose("Release the Kraken!");
@@ -470,70 +460,72 @@ namespace MAMEIronWPF
                     else
                     {
                         //Long-press
-                        _logger.LogVerbose("D1 was long-pressed in PreviewkeyDown.");
+                        _logger.LogVerbose("C was long-pressed in PreviewkeyDown.");
                         _logger.LogVerbose("Toggling Favorite in PreviewkeyDown.");
                         ToggleFavorite();
-                        _logger.LogVerbose("Reset D1 Start Time to zero in PreviewkeyDown.");
+                        _logger.LogVerbose("Reset C Start Time to zero in PreviewkeyDown.");
                         //This is where the arbitrary time value gets set.
-                        _startTimeD1Press = new DateTime(1);
+                        _startTimeCPress = new DateTime(1);
                     }                    
                     break;
-                case Key.Escape:
-                    _logger.LogVerbose("PreviewKeyDown...Escape");
+                case Key.V:
                     //If we're coming in with a new button press, save the exact time that the button was pressed.
-                    if (_startTimeEscPress == new DateTime(0))
+                    if (_startTimeVPress == new DateTime(0))
                     {
                         _logger.LogVerbose("_startTimeEscPress was Zero so we just set it...");
-                        _startTimeEscPress = DateTime.Now;
+                        _startTimeVPress = DateTime.Now;
                     }
                     //If the button has been held down for 2 seconds or longer, trigger the Exit Window
                     else
                     {
                         e.Handled = true;
                         //Long-press
-                        _logger.LogVerbose("Escape was long-pressed in PreviewkeyDown.");
+                        _logger.LogVerbose("V was long-pressed in PreviewkeyDown.");
                         ExitWindow exitWindow = new ExitWindow();
                         exitWindow.Show();
                         exitWindow.ExitListView.Focus();
-                        _logger.LogVerbose("Reset Escape Start Time to zero in PreviewkeyDown.");
+                        _logger.LogVerbose("Reset V Start Time to zero in PreviewkeyDown.");
                         //This is where the arbitrary time value gets set.
-                        _startTimeEscPress = new DateTime(1);
+                        _startTimeVPress = new DateTime(1);
                     }
+                    break;
+                case Key.Down:
                     break;
             }
         }
 
         private void lvGames_PreviewKeyUp(object sender, KeyEventArgs e)
         {
+            _logger.LogVerbose($"{e.Key.ToString()} pressed in PreviewKeyUp");
             switch (e.Key)
             {
-                case Key.D1:
+                case Key.C:
                     //If the person lets go of the button, and this arbitrary value is set, do nothing.
                     //This means it was a long-press and the game has already been toggled in the PreviewKeyDown event.
-                    if (_startTimeD1Press == new DateTime(1))
+                    if (_startTimeCPress == new DateTime(1))
                     {                        
-                        _logger.LogVerbose("We just toggled a game in PreviewKeyDown, so this D1 PreviewkeyUp event should be ignored.");
-                        _logger.LogVerbose("Reset D1 Start Time to zero in PreviewkeyUp: A.");
+                        _logger.LogVerbose("We just toggled a game in PreviewKeyDown, so this C PreviewkeyUp event should be ignored.");
+                        _logger.LogVerbose("Reset C Start Time to zero in PreviewkeyUp: A.");
                         //Reset the button press timer back to zero.
-                        _startTimeD1Press = new DateTime(0);
+                        _startTimeCPress = new DateTime(0);
                     }
                     //If the person lets go of the button and it's been under (2?) seconds, it was a short press. We need to start the game.
-                    else if (DateTime.Now < _startTimeD1Press.AddSeconds(LONGPRESSSECONDS))
+                    else if (DateTime.Now < _startTimeCPress.AddSeconds(LONGPRESSSECONDS))
                     {
                         //Short-press
-                        _logger.LogVerbose("D1 was short-pressed in PreviewkeyUp...");
+                        _logger.LogVerbose("C was short-pressed in PreviewkeyUp...");
                         _logger.LogVerbose("Starting game in PreviewkeyUp...");
                         StartGame((Game)lvGames.SelectedItem, "button");
-                        _logger.LogVerbose("Reset D1 Start Time to zero in PreviewkeyUp: B.");
+                        _logger.LogVerbose("Reset C Start Time to zero in PreviewkeyUp: B.");
                         //Reset the button press timer back to zero.
-                        _startTimeD1Press = new DateTime(0);
+                        _startTimeCPress = new DateTime(0);
                     }                    
                     break;
-                case Key.Escape:
-                    if (DateTime.Now < _startTimeEscPress.AddSeconds(LONGPRESSSECONDS))
+                case Key.V:
+                    if (DateTime.Now < _startTimeVPress.AddSeconds(LONGPRESSSECONDS))
                     {
                         //Short-press
-                        _logger.LogVerbose("Escape was short-pressed in PreviewkeyUp...");
+                        _logger.LogVerbose("V was short-pressed in PreviewkeyUp...");
                         //Do nothing in this case.
                     }
                     else
@@ -542,12 +534,14 @@ namespace MAMEIronWPF
                         //probably do nothing here.
 
 
-                        //_logger.LogVerbose("Escape was long-pressed in PreviewkeyUp...");
+                        //_logger.LogVerbose("V was long-pressed in PreviewkeyUp...");
                         //ExitWindow exitWindow = new ExitWindow();
                         //exitWindow.Show();                        
                         //Exit MAMEIron, or possibly Windows.
                     }
-                    _startTimeEscPress = new DateTime(0);
+                    _startTimeVPress = new DateTime(0);
+                    break;
+                case Key.Down:
                     break;
             }
             _selectedIndex = lvGames.SelectedIndex;
