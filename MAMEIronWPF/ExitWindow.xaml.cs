@@ -32,7 +32,7 @@ namespace MAMEIronWPF
             {
                 Close();
             }
-            else if (e.Key == Key.D1)
+            else if (e.Key == Key.C)
             {
                 if (ExitListView.SelectedItem.ToString() == "Reboot")
                 {
