@@ -61,7 +61,9 @@ namespace MAMEIronWPF
 
         private DateTime _startTimeCPress;
         private DateTime _startTimeVPress;
+        private DateTime _startTimeDownPress;
         private const int LONGPRESSSECONDS = 2;
+        private const int LONGSCROLLSECONDS = 1;
 
         public MainWindow()
         {
@@ -490,6 +492,29 @@ namespace MAMEIronWPF
                     }
                     break;
                 case Key.Down:
+                    ////If we're coming in with a new button press, save the exact time that the button was pressed.
+                    //if (_startTimeDownPress == new DateTime(0))
+                    //{
+                    //    _logger.LogVerbose("_startTimeDownPress was Zero so we just set it...");
+                    //    _startTimeDownPress = DateTime.Now;
+                    //}
+                    //else if (DateTime.Now < _startTimeDownPress.AddSeconds(LONGSCROLLSECONDS))
+                    //{
+                    //    //do nothing...he/she has only been holding down for < 1 seconds
+                    //}
+                    //else
+                    //{
+                    //    int ss = lvGames.SelectedIndex;
+                    //    lvGames.SelectedIndex += 100;
+                    //    lvGames.SelectedItem = lvGames.Items[ss];
+                    //    lvGames.Items.Refresh();
+                    //}
+                    //lvGames.SelectedIndex += 1000;
+
+                    //lvGames.SelectedItem = lvGames.Items.Items[200];
+                    //lvGames.UpdateLayout();
+                    //((ListViewItem)lvGames.ItemContainerGenerator.ContainerFromIndex(200)).Focus();
+                    //lvGames.Items.Refresh();
                     break;
             }
         }
@@ -542,6 +567,7 @@ namespace MAMEIronWPF
                     _startTimeVPress = new DateTime(0);
                     break;
                 case Key.Down:
+                    _startTimeDownPress = new DateTime(0);
                     break;
             }
             _selectedIndex = lvGames.SelectedIndex;
