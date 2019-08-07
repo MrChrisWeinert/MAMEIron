@@ -116,6 +116,7 @@ namespace MAMEIronWPF
             HideMouse();
             _logger.LogInfo("===============================================================================");
             _logger.LogInfo("Starting MAME");
+            _logger.LogInfo("===============================================================================");
             Loaded += MainWindow_Loaded;
 
             _lastMotionDetectedTime = DateTime.Now.AddSeconds(20);
@@ -194,7 +195,10 @@ namespace MAMEIronWPF
 
         private void StartGame(Game game, string method)
         {
+            _logger.LogVerbose($"StartGame {game.Name}.");
+            _logger.LogVerbose("NusbioPixel.SetStrip_Begin");
             nusbioPixel?.SetStrip(Color.Beige, 0);
+            _logger.LogVerbose("NusbioPixel.SetStrip_End");
             //videoSourcePlayer2.NewFrame -= Cam_NewFrame2;
             string st = _mameExe;
             Process process = new Process();
@@ -202,10 +206,12 @@ namespace MAMEIronWPF
             process.StartInfo.WorkingDirectory = _rootDirectory;
             process.StartInfo.Arguments = game.Name + " " + _mameArgs;
             process.StartInfo.UseShellExecute = true;
+            _logger.LogVerbose($"About to process.Start()");
             process.Start();
             process.WaitForExit();
             if (process.ExitCode == 0)
             {
+                _logger.LogVerbose($"process.ExitCode==0");
                 game.IncrementPlayCount();
             }
             else
@@ -219,6 +225,7 @@ namespace MAMEIronWPF
                 _logger.LogInfo($"Excluded {game.Name} from games list.");
             }
             process.Close();
+            _logger.LogVerbose($"process.Close()");
             PersistGameChanges();
             _logger.LogVerbose($"Games persisted to games.json.");
             //_lastMotionDetectedTime = DateTime.Now;
@@ -344,10 +351,16 @@ namespace MAMEIronWPF
                     switch (e.Key)
                     {
                         case Key.V:
+                            _logger.LogVerbose("V in KeyDown.");
                             break;
                         case Key.C:
+                            _logger.LogVerbose("C in KeyDown.");
+                            break;
+                        case Key.System:
+                            _logger.LogVerbose("System in KeyDown.");
                             break;
                         case Key.LeftCtrl:
+                            _logger.LogVerbose("LeftCtrl in KeyDown.");
                             _ctrlcount++;
                             if (_ctrlcount == 3)
                             {
@@ -355,50 +368,57 @@ namespace MAMEIronWPF
                             }
                             break;
                         case Key.LeftAlt:
+                            _logger.LogVerbose("LeftAlt in KeyDown.");
                             break;
                         case Key.Space:
+                            _logger.LogVerbose("Space in KeyDown.");
                             break;
                         case Key.LeftShift:
+                            _logger.LogVerbose("LeftShift in KeyDown.");
                             break;
                         case Key.Z:
+                            _logger.LogVerbose("Z in KeyDown.");
                             break;
                         case Key.X:
+                            _logger.LogVerbose("X in KeyDown.");
                             break;
                         case Key.Up:
+                            _logger.LogVerbose("Up in KeyDown.");
                             break;
                         case Key.Down:
                             _logger.LogVerbose("Down in KeyDown.");
                             break;
                         case Key.A:
-                        //videoSourcePlayer2.NewFrame -= Cam_NewFrame2;
-                        //var tasks = new List<Task<bool>>();
-                        //tasks.Add(Task<bool>.Factory.StartNew(GetVoiceTextReg));
-                        //Task.WaitAll(tasks.ToArray());
-                        //Thread.Sleep(5000);
-                        //if (_voiceGameList == null)
-                        //{
-                        //    _logger.WriteToLogFile("The voiceToTtext button was pressed, but no games were in the _voiceGameList.");
-                        //    videoSourcePlayer2.NewFrame += Cam_NewFrame2;
-                        //}
-                        //else if (_voiceGameList.Count == 1)
-                        //{
-                        //    StartGame(_voiceGameList[0], "voice");
-                        //    videoSourcePlayer2.NewFrame += Cam_NewFrame2;
-                        //}
-                        //else if (_voiceGameList.Count > 1)
-                        //{
-                        //    gameList.Visible = false;
-                        //    snaps.Visible = false;
-                        //    favoriteList.Visible = false;
-                        //    this.Enabled = false;
-                        //    Form f = new FuzzyGameSelectForm(this, _voiceGameList);
-                        //}
-                        //else
-                        //{
-                        //    _logger.WriteToLogFile("The voiceToTtext button was pressed, but no games were in the _voiceGameList.");
-                        //    videoSourcePlayer2.NewFrame += Cam_NewFrame2;
-                        //}
-                        break;
+                            _logger.LogVerbose("A in KeyDown.");
+                            //videoSourcePlayer2.NewFrame -= Cam_NewFrame2;
+                            //var tasks = new List<Task<bool>>();
+                            //tasks.Add(Task<bool>.Factory.StartNew(GetVoiceTextReg));
+                            //Task.WaitAll(tasks.ToArray());
+                            //Thread.Sleep(5000);
+                            //if (_voiceGameList == null)
+                            //{
+                            //    _logger.WriteToLogFile("The voiceToTtext button was pressed, but no games were in the _voiceGameList.");
+                            //    videoSourcePlayer2.NewFrame += Cam_NewFrame2;
+                            //}
+                            //else if (_voiceGameList.Count == 1)
+                            //{
+                            //    StartGame(_voiceGameList[0], "voice");
+                            //    videoSourcePlayer2.NewFrame += Cam_NewFrame2;
+                            //}
+                            //else if (_voiceGameList.Count > 1)
+                            //{
+                            //    gameList.Visible = false;
+                            //    snaps.Visible = false;
+                            //    favoriteList.Visible = false;
+                            //    this.Enabled = false;
+                            //    Form f = new FuzzyGameSelectForm(this, _voiceGameList);
+                            //}
+                            //else
+                            //{
+                            //    _logger.WriteToLogFile("The voiceToTtext button was pressed, but no games were in the _voiceGameList.");
+                            //    videoSourcePlayer2.NewFrame += Cam_NewFrame2;
+                            //}
+                            break;
                     }
                 }
             }
@@ -963,7 +983,12 @@ namespace MAMEIronWPF
         private void window_Closed(object sender, EventArgs e)
         {
             //_localWebCam.Stop();
+            _logger.LogInfo("Toggle Cabinet Lights_Begin");
             ToggleCabinetLights();
+            _logger.LogInfo("Toggle Cabinet Lights_End");
+            _logger.LogInfo("===============================================================================");
+            _logger.LogInfo("Shutting down MAME");
+            _logger.LogInfo("===============================================================================");
             Application.Current.Shutdown();
         }
     }
