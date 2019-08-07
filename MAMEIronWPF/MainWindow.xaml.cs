@@ -140,7 +140,7 @@ namespace MAMEIronWPF
 
             #region Load games from disk and bind to the ListView
             LoadGamesFromJSON();
-            lvGames.ItemsSource = _games.OrderByDescending(x => x.IsFavorite).ThenBy(x => x.Description); ;
+            lvGames.ItemsSource = _games.Where(x => x.IsExcluded == false && x.IsClone == false).OrderByDescending(x => x.IsFavorite).ThenBy(x => x.Description); ;
             CollectionView view = (CollectionView)CollectionViewSource.GetDefaultView(lvGames.ItemsSource);
             PropertyGroupDescription groupDescription = new PropertyGroupDescription("IsFavorite");
             view.GroupDescriptions.Add(groupDescription);
@@ -211,12 +211,12 @@ namespace MAMEIronWPF
             else
             {
                 _logger.LogInfo($"Couldn't start game: {game.Name} via {st}.");
-                _games.Remove(game);
-                //Rebind since we removed a game.
-                lvGames.ItemsSource = _games.OrderByDescending(x => x.IsFavorite).ThenBy(x => x.Description);
+                _games.First(x => x.Name == game.Name).IsExcluded = true;
+                //Rebind since we excluded a game.
+                lvGames.ItemsSource = _games.Where(x => x.IsExcluded==false).OrderByDescending(x => x.IsFavorite).ThenBy(x => x.Description);
                 lvGames.Items.Refresh();
 
-                _logger.LogInfo($"Removed {game.Name} from games list.");
+                _logger.LogInfo($"Excluded {game.Name} from games list.");
             }
             process.Close();
             PersistGameChanges();
