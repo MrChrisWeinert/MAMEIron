@@ -22,6 +22,7 @@ namespace MAMEIronWPF
         private List<Game> _games;
         private Dictionary<string, string> _categories;
         private Dictionary<string, float> _versions;
+        private List<string> _killList;
 
         public void GenerateGameList(string mameExe, string gamesJson, string snapDir)
         {
@@ -29,6 +30,16 @@ namespace MAMEIronWPF
             _mameExe = mameExe;
             _gamesJson = gamesJson;
             _snapsDir = snapDir;
+            _killList = new List<string>();
+            //There are several screenshots for games that use a "default" or "image not found" or some generic varation of a blank screen. I don't want those games, so I filter them out.
+            _killList.Add("a766be38df34c5db61ad5cd559919487");
+            _killList.Add("30ab4d58332ef5332affe5f3320c647a");
+            _killList.Add("1b7928278186f053777dea680b0a2b2d");
+            _killList.Add("e2b8f257fea66b661ee70efc73b6c84a");
+            _killList.Add("ab541cffaccbff5f9d2ad2d9031c0c48");
+            _killList.Add("6a4ca1ab352df8af4a25c50a65bb8963");
+            _killList.Add("26bdf324b11da6190f38886a3b0f7598");
+
             if (!File.Exists(_gamesJson))
             {
                 GenerateGamesJSON();
@@ -65,7 +76,7 @@ namespace MAMEIronWPF
             process.StartInfo.Arguments = " -listxml";
             process.StartInfo.UseShellExecute = false;
             process.StartInfo.RedirectStandardOutput = true;
-            //Perf note: It will take MAME a few minutes to generate the list.xml file. It's roughly 170MB in size (version .161).
+            //Perf note: It will take MAME a few minutes to generate the list.xml file. It's roughly 222MB in size (version .211).
             process.Start();
 
             using (StreamReader sr = process.StandardOutput)
@@ -105,18 +116,40 @@ namespace MAMEIronWPF
                         }
                         if (isCategory)
                         {
-                            string name = line.Substring(0, line.IndexOf("=") - 1);
-                            int start = line.IndexOf("=") + 2;
+                            string name = line.Substring(0, line.IndexOf("="));
+                            int start = line.IndexOf("=") + 1;
                             int end = line.Length - start;
                             string category = line.Substring(start, end);
                             _categories.Add(name, category);
                         }
                         else
                         {
-                            string name = line.Substring(0, line.IndexOf("=") - 1);
-                            int start = line.IndexOf("=") + 2;
+                            string name = line.Substring(0, line.IndexOf("="));
+                            int start = line.IndexOf("=") + 1;
                             int end = line.Length - start;
-                            float version = float.Parse(line.Substring(start, 4));
+                            string ver = line.Substring(start, end);
+                            if (ver.Contains("b") || ver.Contains("u") || ver.Contains("rc") || ver.Contains("a"))
+                            {
+                                int letterPos=-1;
+                                if (ver.Contains("b"))
+                                {
+                                    letterPos = ver.IndexOf("b");
+                                }
+                                else if (ver.Contains("u"))
+                                {
+                                    letterPos = ver.IndexOf("u");
+                                }
+                                else if (ver.Contains("rc"))
+                                {
+                                    letterPos = ver.IndexOf("rc");
+                                }
+                                else if (ver.Contains("a"))
+                                {
+                                    letterPos = ver.IndexOf("a");
+                                }
+                                ver = ver.Substring(0, letterPos);
+                            }
+                            float version = float.Parse(ver);
                             _versions.Add(name, version);
                         }
                     }
@@ -129,36 +162,21 @@ namespace MAMEIronWPF
         {
             _games = new List<Game>();
             XmlDocument doc = new XmlDocument();
-            //Perf note: The list.xml file is roughly 170MB (version .161). Loading this into memory uses ~2GB of RAM.
+            //Perf note: The list.xml file is roughly 222MB (version .211). Loading this into memory uses ~2GB of RAM.
             doc.Load(_listFull);
             XmlNode root = doc.SelectSingleNode("mame");
             HashSet<string> drivers = new HashSet<string>();
             HashSet<string> statuses = new HashSet<string>();
-            List<string> KillList = new List<string>();
-            //There are several screenshots for games that use a "default" or "image not found" or some generic varation of a blank screen. I don't want those games, so I filter them out.
-            //I think I sorted the images based on file size (on disk) and saw a bunch of repeating images, and then calculated the MD5 of those images I wanted to kill and added them here.
-            // Leaving the code in for now.
-            //KillList.Add("e2b8f257fea66b661ee70efc73b6c84a");
-            //KillList.Add("6a4ca1ab352df8af4a25c50a65bb8963");
-            //KillList.Add("30ab4d58332ef5332affe5f3320c647a");
-            //KillList.Add("1b7928278186f053777dea680b0a2b2d");
-            //KillList.Add("5724a7dceff5b938ecd0ee7003f6a763");
-            //KillList.Add("ab541cffaccbff5f9d2ad2d9031c0c48");
-            //KillList.Add("a766be38df34c5db61ad5cd559919487");
-            //KillList.Add("0be368e7b0f40f4287eceb539e00d0b9");
-            //KillList.Add("26bdf324b11da6190f38886a3b0f7598");
-            //KillList.Add("0734aca010260cee0bbf08b08e642fed");
-            //KillList.Add("8f40e0665c367ea22d6ede551a8c2ed6");
-            //KillList.Add("ace0c785acc73a72f52768838fb5e4fb");
-            //KillList.Add("f28cffce4c580b1c28ef0c24e8e25f80");
-            foreach (XmlNode node in root.SelectNodes("game"))
+            foreach (XmlNode node in root.SelectNodes("machine"))
             {
                 Game g = new Game();
                 g.Name = node.Attributes["name"].Value.ToString();
+                
                 bool isClone;
                 if (node.Attributes["cloneof"] != null)
                 {
                     isClone = true;
+                    continue;//skip it
                 }
                 else
                 {
@@ -170,7 +188,7 @@ namespace MAMEIronWPF
                 {
                     float version = 0;
                     _versions.TryGetValue(g.Name, out version);
-                    if (version > 0 && version <= .161)
+                    if (version != .212)
                     {
                         g.Description = node.SelectSingleNode("description").InnerText;
                         g.IsExcluded = false;
@@ -184,12 +202,7 @@ namespace MAMEIronWPF
                             //Filter out mature games
                             if (category.Contains("* Mature *"))
                             {
-                                g.IsMature = true;
-                                g.IsExcluded = true;
-                            }
-                            else
-                            {
-                                g.IsMature = false;
+                                continue;
                             }
                             if (!category.Contains("/"))
                             {
@@ -205,16 +218,16 @@ namespace MAMEIronWPF
                                 g.Category = mainCategory;
                                 g.SubCategory = subCategory;
                             }
-                            g.Screenshot = g.Name + ".png";
                             
                             //Filter out games by category, subcategory, description, or if it's a clone
-                            if (g.Category == "Electromechanical" || g.SubCategory == "Reels" || g.Category == "Casino" || g.SubCategory == "Mahjong" || (g.Category == "Rhythm" && (g.SubCategory == "Dance" || g.SubCategory == "Instruments")) || g.Category == "Home Systems" || g.Category == "Professional Systems" || g.Category == "System" || g.Category == "Ball & Paddle" || isClone || g.Description.Contains("DECO Cassette") || g.Category == "Multiplay" || g.Description.Contains("PlayChoice-10") || g.Category == "Quiz" || g.Description.Contains("bootleg"))
+                            if (g.Category == "Electromechanical" || g.SubCategory == "Reels" || g.Category == "Casino" || g.SubCategory == "Mahjong" || (g.Category == "Rhythm" && (g.SubCategory == "Dance" || g.SubCategory == "Instruments")) || g.Category == "Home Systems" || g.Category == "Professional Systems" || g.Category == "System" || g.Category == "Ball & Paddle" || isClone || g.Description.Contains("DECO Cassette") || g.Category == "Multiplay" || g.Description.Contains("PlayChoice-10") || g.Category == "Quiz" || g.Description.Contains("bootleg") || g.Category == "Utilities" || g.Category == "Handheld" || g.Category== "Computer" || g.Category== "Game Console" || g.Category== "Slot Machine" || g.Category== "Misc." || g.Category=="Tabletop" || g.Category== "Board Game" || g.Category=="Calculator")
                             {
-                                g.IsExcluded = true;
+                                continue;
                             }
 
-                            //Only add games for which we have a screenshot, and only if it's not in the Kill List
-                            if (isValidScreenshot(Path.Combine(_snapsDir, g.Screenshot), KillList))
+                            g.Screenshot = g.Name + ".png";
+                            //Only add games for which we have a valid screenshot
+                            if (isValidScreenshot(Path.Combine(_snapsDir, g.Screenshot)))
                             {
                                 _games.Add(g);
                             }
@@ -225,13 +238,13 @@ namespace MAMEIronWPF
             WriteNewGamesFile(_games, _gamesJson);
         }
 
-        private static bool isValidScreenshot(string screenshot, List<string> killList)
+        private bool isValidScreenshot(string screenshot)
         {
             if (File.Exists(screenshot))
             {
                 string md5 = HashFile(screenshot);
                 //Don't add it if it's in the kill list
-                if (killList.Contains(md5))
+                if (_killList.Contains(md5))
                 {
                     return false;
                 }
