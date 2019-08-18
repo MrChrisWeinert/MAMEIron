@@ -18,7 +18,7 @@ using AForge.Video.DirectShow;
 using AForge.Vision.Motion;
 using AForge.Video;
 using System.Threading;
-
+using System.Collections;
 
 namespace MAMEIronWPF
 {
@@ -34,7 +34,6 @@ namespace MAMEIronWPF
         private string _gamesJson;
         private string _logFile;
 
-        private int _ctrlcount = 0;
         private Dictionary<string, System.Windows.Media.ImageSource> _snapshots;
         private ObservableCollection<Game> _games { get; set; }
         private int _selectedIndex { get; set; }
@@ -63,7 +62,7 @@ namespace MAMEIronWPF
         private DateTime _startTimeDownPress = new DateTime(0);
         private DateTime _startTimeCPress;
         private DateTime _startTimeVPress;
-        private const int LONGPRESSMILLISECONDS = 2500;
+        private const int LONGPRESSMILLISECONDS = 3000;
         private const int JUMPDISTANCE = 100;
 
         public MainWindow()
@@ -137,17 +136,16 @@ namespace MAMEIronWPF
                 }
                 //_logger.WriteToLogFile("FadeIn() complete");
                 //PlaySound really only makes sense during the FadeIn sequence. If there are no lights, don't play the sound
-                PlaySound();
+                PlaySound("startup.wav");
                 //_logger.WriteToLogFile("Intro sound was played");
             }
 
 
             #region Load games from disk and bind to the ListView
             LoadGamesFromJSON();
-            lvGames.ItemsSource = _games.Where(x => x.IsExcluded == false && x.IsClone == false).OrderByDescending(x => x.IsFavorite).ThenBy(x => x.Description); ;
+            lvGames.ItemsSource = GetUpdatedGameList();
+
             CollectionView view = (CollectionView)CollectionViewSource.GetDefaultView(lvGames.ItemsSource);
-            PropertyGroupDescription groupDescription = new PropertyGroupDescription("IsFavorite");
-            view.GroupDescriptions.Add(groupDescription);
             lvGames.Focus();
             lvGames.SelectionMode = SelectionMode.Single;
             lvGames.SelectedIndex = 0;
@@ -180,6 +178,16 @@ namespace MAMEIronWPF
                 //}
             }
         }
+
+        private IEnumerable GetUpdatedGameList()
+        {
+            //Add all the games
+            List<Game> gameList = _games.Where(x => x.IsExcluded == false && x.IsClone == false).OrderBy(x => x.Description).ToList();
+            //Now insert the favorites at the top (this will create duplicates, which is OK)
+            gameList.InsertRange(0, _games.Where(x => x.IsExcluded == false && x.IsClone == false && x.IsFavorite).OrderBy(x => x.Description).ToList());
+            return gameList;
+        }
+
         void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             _logger.LogVerbose("MainWindow Loaded");
@@ -222,7 +230,7 @@ namespace MAMEIronWPF
                 _logger.LogInfo($"Couldn't start game: {game.Name} via {st}.");
                 _games.First(x => x.Name == game.Name).IsExcluded = true;
                 //Rebind since we excluded a game.
-                lvGames.ItemsSource = _games.Where(x => x.IsExcluded==false).OrderByDescending(x => x.IsFavorite).ThenBy(x => x.Description);
+                lvGames.ItemsSource = GetUpdatedGameList();
                 lvGames.Items.Refresh();
 
                 _logger.LogInfo($"Excluded {game.Name} from games list.");
@@ -234,9 +242,6 @@ namespace MAMEIronWPF
             //_lastMotionDetectedTime = DateTime.Now;
             //videoSourcePlayer2.NewFrame += Cam_NewFrame2;
             nusbioPixel?.SetStrip(70, 191, 238, 64);
-
-            //TODO: This was previously here...not sure we need it after every "StartGame()" or if it's okay to just have it once at app startup.
-            //HideMouse();
         }
         public void HideMouse()
         {
@@ -244,17 +249,37 @@ namespace MAMEIronWPF
         }
         private void LoadGamesFromJSON()
         {
+            //List<Game> tempGames2 = new List<Game>();
+
+            //using (StreamReader sr = new StreamReader(@"C:\MAME\games.json.old"))
+            //{
+            //    string json = sr.ReadToEnd();
+            //    sr.Close();
+            //    sr.Dispose();
+            //    foreach (Game g in JsonConvert.DeserializeObject<List<Game>>(json))
+            //    {
+            //        if (g.PlayCount > 0)
+            //        {
+            //            tempGames2.Add(g);
+            //        }
+            //    }
+            //}
             using (StreamReader sr = new StreamReader(_gamesJson))
             {
                 string json = sr.ReadToEnd();
                 sr.Close();
                 sr.Dispose();
                 _games = new ObservableCollection<Game>();
-                List<Game> tempGames = JsonConvert.DeserializeObject<List<Game>>(json); ;
+                List<Game> tempGames = JsonConvert.DeserializeObject<List<Game>>(json);
                 foreach (Game g in tempGames)
                 {
                     if (!g.IsExcluded && !g.IsClone)
                     {
+                        //Game gold = tempGames2.FirstOrDefault(x => x.Name == g.Name);
+                        //if (gold != null && gold.PlayCount > 0 && g.PlayCount!= gold.PlayCount)
+                        //{
+                        //    g.PlayCount = gold.PlayCount;
+                        //}                        
                         _games.Add(g);
                     }
                 }
@@ -296,20 +321,11 @@ namespace MAMEIronWPF
         }
         private void lvGames_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            //if (lvGames.SelectedIndex == 0 && _selectedIndex > 0)
-            //{
-            //    lvGames.SelectedIndex = _selectedIndex;
-            //}
             if (lvGames.SelectedItem != null)
             {
-                //TODO: These 3 lines seem unnecessary
-                Game g = (Game)lvGames.SelectedItem;
-                int i = lvGames.Items.IndexOf(g);
-                lvGames.SelectedIndex = i;
-
-
                 Game game = (Game)lvGames.SelectedItem;
                 if (game == null) return;
+                _logger.LogVerbose($"SelectionChanged: Game Name: {game.Name} Selected Index: {lvGames.SelectedIndex} Selected Item Name: {((Game)lvGames.SelectedItem).Name}");
                 string s = Path.Combine(_snapDirectory, game.Screenshot);
 
                 System.Windows.Media.ImageSource imageSource = new BitmapImage();
@@ -368,12 +384,6 @@ namespace MAMEIronWPF
                             break;
                         case Key.LeftCtrl:
                             _logger.LogVerbose("LeftCtrl in KeyDown.");
-                            _ctrlcount++;
-                            if (_ctrlcount == 3)
-                            {
-                                _logger.LogVerbose("Toggling Favorite via 3x LeftCtrl press in keyDown.");
-                                ToggleFavorite();
-                            }
                             break;
                         case Key.LeftAlt:
                             _logger.LogVerbose("LeftAlt in KeyDown.");
@@ -438,22 +448,17 @@ namespace MAMEIronWPF
 
         private void ToggleFavorite()
         {
-            Game g = (Game)lvGames.SelectedItem;
-            //string desc = ((Game)lvGames.SelectedItem).Description;
+            PlaySound("pacman_cherry.wav");
             ((Game)lvGames.SelectedItem).ToggleFavorite();
             PersistGameChanges();
 
-            lvGames.ItemsSource = _games.OrderByDescending(x => x.IsFavorite).ThenBy(x => x.Description);
+            lvGames.ItemsSource = GetUpdatedGameList();
             lvGames.Items.Refresh();
 
             if (lvGames.SelectedIndex <= 0 && _selectedIndex > 0)
             {
                 lvGames.SelectedIndex = _selectedIndex;
             }
-            //int i = lvGames.Items.IndexOf(g);
-            //lvGames.SelectedIndex = i;
-            //lvGames.InvalidateProperty(ListView.ItemsSourceProperty);
-            //lvGames.ItemsSource = Games;
             _ctrlcount = 0;
         }
 
@@ -624,7 +629,6 @@ namespace MAMEIronWPF
                     break;
             }
             _selectedIndex = lvGames.SelectedIndex;
-            Game g = (Game)lvGames.SelectedItem;
         }
 #endregion
 
@@ -1018,7 +1022,7 @@ namespace MAMEIronWPF
 
         #region Audio
         private delegate void PlaySoundDelegate();
-        private void PlaySound()
+        private void PlaySound(string audioFile)
         {
             //if (this.InvokeRequired)
             //{
@@ -1028,11 +1032,14 @@ namespace MAMEIronWPF
             //}
             //else
             //{
-            Thread.Sleep(2000);
-            string audioFile = Path.Combine(_rootDirectory, "98883_1656228-lq.wav");
-            if (File.Exists(audioFile))
+            if (audioFile == "startup.wav")
             {
-                System.Media.SoundPlayer player = new System.Media.SoundPlayer(audioFile);
+                Thread.Sleep(2000);
+            }            
+            string fileName = Path.Combine(_rootDirectory, "Media", audioFile);
+            if (File.Exists(fileName))
+            {                
+                System.Media.SoundPlayer player = new System.Media.SoundPlayer(fileName);
                 player.Play();
             }
             //}

@@ -180,9 +180,10 @@
     <Resource Include="arcade_machine.ico" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="98883_1656228-lq.wav">
+    <Content Include="Media\startup.wav">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="Media\pacman_cherry.wav" />
     <Resource Include="Contra3.jpg" />
   </ItemGroup>
   <ItemGroup>
