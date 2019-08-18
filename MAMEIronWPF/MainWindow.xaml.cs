@@ -59,9 +59,12 @@ namespace MAMEIronWPF
         public int _konamiCounter = 0;
         private Key[] KonamiCode = new Key[11];
 
+        private DateTime _startTimeUpPress = new DateTime(0);
+        private DateTime _startTimeDownPress = new DateTime(0);
         private DateTime _startTimeCPress;
         private DateTime _startTimeVPress;
-        private const int LONGPRESSSECONDS = 2;
+        private const int LONGPRESSMILLISECONDS = 2500;
+        private const int JUMPDISTANCE = 100;
 
         public MainWindow()
         {
@@ -468,7 +471,7 @@ namespace MAMEIronWPF
                     }
 
                     //If the button has been held down for < 2 seconds, do nothing. This is a Short-press and the action will happen in PreviewKeyUp
-                    if (DateTime.Now < _startTimeCPress.AddSeconds(LONGPRESSSECONDS))
+                    if (DateTime.Now < _startTimeCPress.AddMilliseconds(LONGPRESSMILLISECONDS))
                     {
                         //Short-press
                         //Do nothing...action will hapen in PreviewKeyUp
@@ -514,6 +517,54 @@ namespace MAMEIronWPF
                     }
                     break;
                 case Key.Down:
+                    if (_startTimeDownPress == new DateTime(0))
+                    {
+                        _startTimeDownPress = DateTime.Now;
+                        _logger.LogVerbose($"The Down key was pressed at {_startTimeDownPress}.");
+                    }
+                    else if (_startTimeDownPress.AddMilliseconds(LONGPRESSMILLISECONDS) < DateTime.Now && _startTimeDownPress != new DateTime(0))
+                    {
+                        _logger.LogVerbose($"Jumping down {JUMPDISTANCE} items in the games list..");
+                        Game game = (Game)lvGames.SelectedItem;
+                        _logger.LogVerbose($"SelectedIndex: {lvGames.SelectedIndex}. lvGames Item count: {lvGames.Items.Count}");
+                        if (lvGames.SelectedIndex + JUMPDISTANCE > lvGames.Items.Count)
+                        {
+                            lvGames.SelectedIndex = lvGames.Items.Count;
+                        }
+                        else
+                        {
+                            lvGames.SelectedIndex += JUMPDISTANCE;
+                        }
+                        lvGames.SelectedItem = lvGames.Items.GetItemAt(lvGames.SelectedIndex);
+                        lvGames.ScrollIntoView(lvGames.SelectedItem);
+                        ListViewItem item = lvGames.ItemContainerGenerator.ContainerFromItem(lvGames.SelectedItem) as ListViewItem;
+                        item.Focus();
+                    }
+                    break;
+                case Key.Up:
+                    if (_startTimeUpPress == new DateTime(0))
+                    {
+                        _startTimeUpPress = DateTime.Now;
+                        _logger.LogVerbose($"The Up key was pressed at {_startTimeUpPress}.");
+                    }
+                    else if (_startTimeUpPress.AddMilliseconds(LONGPRESSMILLISECONDS) < DateTime.Now && _startTimeUpPress != new DateTime(0))
+                    {
+                        _logger.LogVerbose($"Jumping up {JUMPDISTANCE} items in the games list..");
+                        Game game = (Game)lvGames.SelectedItem;
+                        if (lvGames.SelectedIndex - JUMPDISTANCE < 0)
+                        {
+                            lvGames.SelectedIndex = 0;
+                        }
+                        else
+                        {
+                            lvGames.SelectedIndex -= JUMPDISTANCE;
+                        }
+                        _logger.LogVerbose($"SelectedIndex: {lvGames.SelectedIndex}. lvGames Item count: {lvGames.Items.Count}");
+                        lvGames.SelectedItem = lvGames.Items.GetItemAt(lvGames.SelectedIndex);
+                        lvGames.ScrollIntoView(lvGames.SelectedItem);
+                        ListViewItem item = lvGames.ItemContainerGenerator.ContainerFromItem(lvGames.SelectedItem) as ListViewItem;
+                        item.Focus();
+                    }
                     break;
             }
         }
@@ -534,7 +585,7 @@ namespace MAMEIronWPF
                         _startTimeCPress = new DateTime(0);
                     }
                     //If the person lets go of the button and it's been under (2?) seconds, it was a short press. We need to start the game.
-                    else if (DateTime.Now < _startTimeCPress.AddSeconds(LONGPRESSSECONDS))
+                    else if (DateTime.Now < _startTimeCPress.AddMilliseconds(LONGPRESSMILLISECONDS))
                     {
                         //Short-press
                         _logger.LogVerbose("C was short-pressed in PreviewkeyUp...");
@@ -546,7 +597,7 @@ namespace MAMEIronWPF
                     }                    
                     break;
                 case Key.V:
-                    if (DateTime.Now < _startTimeVPress.AddSeconds(LONGPRESSSECONDS))
+                    if (DateTime.Now < _startTimeVPress.AddMilliseconds(LONGPRESSMILLISECONDS))
                     {
                         //Short-press
                         _logger.LogVerbose("V was short-pressed in PreviewkeyUp...");
@@ -566,6 +617,10 @@ namespace MAMEIronWPF
                     _startTimeVPress = new DateTime(0);
                     break;
                 case Key.Down:
+                    _startTimeDownPress = new DateTime(0);
+                    break;
+                case Key.Up:
+                    _startTimeUpPress = new DateTime(0);
                     break;
             }
             _selectedIndex = lvGames.SelectedIndex;
