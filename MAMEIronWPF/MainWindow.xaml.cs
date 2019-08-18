@@ -459,7 +459,6 @@ namespace MAMEIronWPF
             {
                 lvGames.SelectedIndex = _selectedIndex;
             }
-            _ctrlcount = 0;
         }
 
         private void lvGames_PreviewKeyDown(object sender, KeyEventArgs e)
