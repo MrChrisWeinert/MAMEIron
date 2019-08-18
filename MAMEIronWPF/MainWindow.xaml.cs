@@ -279,6 +279,10 @@ namespace MAMEIronWPF
         #endregion
         private void PersistGameChanges()
         {
+            //Make a backup of the old games list, just in case things go south.
+            string _gamesJsonOld = _gamesJson.Replace(".json","") + DateTime.Now.ToString("yyyyMMddHHmmss") + ".json";
+            File.Copy(_gamesJson, _gamesJsonOld);
+            //Write out the new games list.
             using (StreamWriter sw = new StreamWriter(_gamesJson, false))
             {
                 string json = JsonConvert.SerializeObject(_games);
@@ -364,6 +368,7 @@ namespace MAMEIronWPF
                             _ctrlcount++;
                             if (_ctrlcount == 3)
                             {
+                                _logger.LogVerbose("Toggling Favorite via 3x LeftCtrl press in keyDown.");
                                 ToggleFavorite();
                             }
                             break;
@@ -468,20 +473,19 @@ namespace MAMEIronWPF
                         //Short-press
                         //Do nothing...action will hapen in PreviewKeyUp
                     }
-                    //If the button is being held down, but the start time is this arbitrary number I chose, then the game has already been toggled, and we're just waiting for the user
-                    // to release the button. It'd be fun to measure reaction times here :)
+                    //If the button is being held down, but the start time is this arbitrary number I chose, then the game has already been toggled, and we're just waiting for the user to release the button.
                     else if (_startTimeCPress == new DateTime(1))
                     {
                         //Do nothing....this means the game has been toggled, but the person has not yet released the button.
                         _logger.LogVerbose("Release the Kraken!");
                     }
                     //If the button has been held down for 2 seconds or longer, Toggle the favorite.
-                    //We need to provide an indicator to the user (visually, via the Pac-Man favorite icon [ooohhh...maybe audio too?), so he/she knows to let go of the button.
+                    //TODO: We need to provide an indicator to the user (visually, via the Pac-Man favorite icon [ooohhh...maybe audio too?), so he/she knows to let go of the button.
                     else
                     {
                         //Long-press
                         _logger.LogVerbose("C was long-pressed in PreviewkeyDown.");
-                        _logger.LogVerbose("Toggling Favorite in PreviewkeyDown.");
+                        _logger.LogVerbose("Toggling Favorite via long-press in PreviewkeyDown.");
                         ToggleFavorite();
                         _logger.LogVerbose("Reset C Start Time to zero in PreviewkeyDown.");
                         //This is where the arbitrary time value gets set.

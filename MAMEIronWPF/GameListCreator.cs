@@ -31,7 +31,7 @@ namespace MAMEIronWPF
             _gamesJson = gamesJson;
             _snapsDir = snapDir;
             _killList = new List<string>();
-            //There are several screenshots for games that use a "default" or "image not found" or some generic varation of a blank screen. I don't want those games, so I filter them out.
+            //There are several screenshots for games that use a "default" or "image not found" or some generic varation of a blank screen. I don't want those games, so I filter them out manually.
             _killList.Add("a766be38df34c5db61ad5cd559919487");
             _killList.Add("30ab4d58332ef5332affe5f3320c647a");
             _killList.Add("1b7928278186f053777dea680b0a2b2d");
@@ -39,6 +39,8 @@ namespace MAMEIronWPF
             _killList.Add("ab541cffaccbff5f9d2ad2d9031c0c48");
             _killList.Add("6a4ca1ab352df8af4a25c50a65bb8963");
             _killList.Add("26bdf324b11da6190f38886a3b0f7598");
+            //Nerd note^ ... This would be a perfect use case for AI. If we trained the model properly, it would be able to tell us if each screenshot is an "image not found", or mostly black, or video poker, etc.
+
 
             if (!File.Exists(_gamesJson))
             {
