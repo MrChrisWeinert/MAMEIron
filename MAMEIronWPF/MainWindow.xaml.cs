@@ -63,7 +63,7 @@ namespace MAMEIronWPF
         private DateTime _startTimeCPress;
         private DateTime _startTimeVPress;
         private const int LONGPRESSMILLISECONDS = 3000;
-        private const int JUMPDISTANCE;
+        private int JUMPDISTANCE;
 
         public MainWindow()
         {
