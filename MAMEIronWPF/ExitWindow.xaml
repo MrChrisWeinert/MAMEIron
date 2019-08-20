@@ -1,0 +1,45 @@
+﻿<Window x:Class="MAMEIronWPF.ExitWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:MAMEIronWPF"
+        mc:Ignorable="d"
+        Title="ExitWindow" Height="1050" Width="1680" ResizeMode="NoResize" WindowStyle="None" Background="{x:Null}" Foreground="{x:Null}" Left="0" Top="0">
+    <Grid>
+        <Rectangle Height="262" VerticalAlignment="Top" Margin="588,213,601,0" Fill="White" RadiusX="90" RadiusY="90"/>
+        <ListView
+            HorizontalAlignment="Left" 
+            Height="162" 
+            Margin="656,263,0,0" 
+            VerticalAlignment="Top" 
+            Width="354" 
+            Name="ExitListView" 
+            KeyDown="ExitListView_KeyDown" 
+            FontFamily="Arcade" 
+            FontSize="48" 
+            BorderThickness="0"            
+            Background="White"
+            ScrollViewer.VerticalScrollBarVisibility="Hidden"
+            ScrollViewer.HorizontalScrollBarVisibility="Hidden">
+            <ListView.View>
+                <GridView>
+                    <GridView.ColumnHeaderContainerStyle>
+                        <Style>
+                            <Setter Property="TextElement.FontFamily" Value="PacFont Good" />
+                            <Setter Property="TextElement.Foreground" Value="DarkBlue" />
+
+                        </Style>
+                    </GridView.ColumnHeaderContainerStyle>
+                    <GridViewColumn Header="Game Over!" x:Name="ExitMenuHeader" Width="354">
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}"/>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                </GridView>
+            </ListView.View>
+        </ListView>
+    </Grid>
+</Window>

@@ -12,10 +12,9 @@
         public bool IsExcluded { get; set; }
         public bool IsFavorite { get; set; }
         public bool IsClone { get; set; }
-        public bool IsMature { get; set; }
         public Game()
         { }
-        public Game(string name, string description, string screenshot, string year, int playcount, bool isfavorite, bool isexcluded, bool ismature, string category, string subcategory, bool isclone)
+        public Game(string name, string description, string screenshot, string year, int playcount, bool isfavorite, bool isexcluded, string category, string subcategory, bool isclone)
         {
             Name = name;
             Description = description;
@@ -24,7 +23,6 @@
             PlayCount = playcount;
             IsFavorite = isfavorite;
             IsExcluded = isexcluded;
-            IsMature = ismature;
             IsClone = isclone;
             Category = category;
             SubCategory = subcategory;

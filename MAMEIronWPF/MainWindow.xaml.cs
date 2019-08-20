@@ -18,7 +18,7 @@ using AForge.Video.DirectShow;
 using AForge.Vision.Motion;
 using AForge.Video;
 using System.Threading;
-
+using System.Collections;
 
 namespace MAMEIronWPF
 {
@@ -34,7 +34,6 @@ namespace MAMEIronWPF
         private string _gamesJson;
         private string _logFile;
 
-        private int _ctrlcount = 0;
         private Dictionary<string, System.Windows.Media.ImageSource> _snapshots;
         private ObservableCollection<Game> _games { get; set; }
         private int _selectedIndex { get; set; }
@@ -59,9 +58,12 @@ namespace MAMEIronWPF
         public int _konamiCounter = 0;
         private Key[] KonamiCode = new Key[11];
 
-        private DateTime _startTimeD1Press;
-        private DateTime _startTimeEscPress;
-        private const int LONGPRESSSECONDS = 2;
+        private DateTime _startTimeUpPress = new DateTime(0);
+        private DateTime _startTimeDownPress = new DateTime(0);
+        private DateTime _startTimeCPress;
+        private DateTime _startTimeVPress;
+        private const int LONGPRESSMILLISECONDS = 3000;
+        private const int JUMPDISTANCE;
 
         public MainWindow()
         {
@@ -75,7 +77,7 @@ namespace MAMEIronWPF
             KonamiCode[7] = Key.G;
             KonamiCode[8] = Key.A;
             KonamiCode[9] = Key.S;
-            KonamiCode[10] = Key.D1;
+            KonamiCode[10] = Key.C;
             InitializeComponent();
             _cabinetLights = CabinetLights.Off;
             _rootDirectory = ConfigurationManager.AppSettings["rootDirectory"];
@@ -87,6 +89,7 @@ namespace MAMEIronWPF
             _gamesJson = Path.Combine(_rootDirectory, "games.json");
             _supportCamera = Boolean.Parse(ConfigurationManager.AppSettings["Support_Camera"]);
             _supportNusbio = Boolean.Parse(ConfigurationManager.AppSettings["Support_Nusbio"]);
+            JUMPDISTANCE = Int32.Parse(ConfigurationManager.AppSettings["JUMPDISTANCE"]);
             _logger = new Logger(_logFile);
 
             Boolean.Parse(ConfigurationManager.AppSettings["Support_Nusbio"]);
@@ -114,8 +117,9 @@ namespace MAMEIronWPF
             Application.Current.MainWindow.Left = 0;
             Application.Current.MainWindow.Top = 0;
             HideMouse();
+            _logger.LogInfo("===============================================================================");
             _logger.LogInfo("Starting MAME");
-
+            _logger.LogInfo("===============================================================================");
             Loaded += MainWindow_Loaded;
 
             _lastMotionDetectedTime = DateTime.Now.AddSeconds(20);
@@ -133,17 +137,16 @@ namespace MAMEIronWPF
                 }
                 //_logger.WriteToLogFile("FadeIn() complete");
                 //PlaySound really only makes sense during the FadeIn sequence. If there are no lights, don't play the sound
-                PlaySound();
+                PlaySound("startup.wav");
                 //_logger.WriteToLogFile("Intro sound was played");
             }
 
 
             #region Load games from disk and bind to the ListView
             LoadGamesFromJSON();
-            lvGames.ItemsSource = _games.OrderByDescending(x => x.IsFavorite).ThenBy(x => x.Description); ;
+            lvGames.ItemsSource = GetUpdatedGameList();
+
             CollectionView view = (CollectionView)CollectionViewSource.GetDefaultView(lvGames.ItemsSource);
-            PropertyGroupDescription groupDescription = new PropertyGroupDescription("IsFavorite");
-            view.GroupDescriptions.Add(groupDescription);
             lvGames.Focus();
             lvGames.SelectionMode = SelectionMode.Single;
             lvGames.SelectedIndex = 0;
@@ -176,6 +179,16 @@ namespace MAMEIronWPF
                 //}
             }
         }
+
+        private IEnumerable GetUpdatedGameList()
+        {
+            //Add all the games
+            List<Game> gameList = _games.Where(x => x.IsExcluded == false && x.IsClone == false).OrderBy(x => x.Description).ToList();
+            //Now insert the favorites at the top (this will create duplicates, which is OK)
+            gameList.InsertRange(0, _games.Where(x => x.IsExcluded == false && x.IsClone == false && x.IsFavorite).OrderBy(x => x.Description).ToList());
+            return gameList;
+        }
+
         void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             _logger.LogVerbose("MainWindow Loaded");
@@ -194,7 +207,10 @@ namespace MAMEIronWPF
 
         private void StartGame(Game game, string method)
         {
+            _logger.LogVerbose($"StartGame {game.Name}.");
+            _logger.LogVerbose("NusbioPixel.SetStrip_Begin");
             nusbioPixel?.SetStrip(Color.Beige, 0);
+            _logger.LogVerbose("NusbioPixel.SetStrip_End");
             //videoSourcePlayer2.NewFrame -= Cam_NewFrame2;
             string st = _mameExe;
             Process process = new Process();
@@ -202,31 +218,31 @@ namespace MAMEIronWPF
             process.StartInfo.WorkingDirectory = _rootDirectory;
             process.StartInfo.Arguments = game.Name + " " + _mameArgs;
             process.StartInfo.UseShellExecute = true;
+            _logger.LogVerbose($"About to process.Start()");
             process.Start();
             process.WaitForExit();
             if (process.ExitCode == 0)
             {
+                _logger.LogVerbose($"process.ExitCode==0");
                 game.IncrementPlayCount();
             }
             else
             {
                 _logger.LogInfo($"Couldn't start game: {game.Name} via {st}.");
-                _games.Remove(game);
-                //Rebind since we removed a game.
-                lvGames.ItemsSource = _games.OrderByDescending(x => x.IsFavorite).ThenBy(x => x.Description);
+                _games.First(x => x.Name == game.Name).IsExcluded = true;
+                //Rebind since we excluded a game.
+                lvGames.ItemsSource = GetUpdatedGameList();
                 lvGames.Items.Refresh();
 
-                _logger.LogInfo($"Removed {game.Name} from games list.");
+                _logger.LogInfo($"Excluded {game.Name} from games list.");
             }
             process.Close();
+            _logger.LogVerbose($"process.Close()");
             PersistGameChanges();
             _logger.LogVerbose($"Games persisted to games.json.");
             //_lastMotionDetectedTime = DateTime.Now;
             //videoSourcePlayer2.NewFrame += Cam_NewFrame2;
             nusbioPixel?.SetStrip(70, 191, 238, 64);
-
-            //TODO: This was previously here...not sure we need it after every "StartGame()" or if it's okay to just have it once at app startup.
-            //HideMouse();
         }
         public void HideMouse()
         {
@@ -234,17 +250,37 @@ namespace MAMEIronWPF
         }
         private void LoadGamesFromJSON()
         {
+            //List<Game> tempGames2 = new List<Game>();
+
+            //using (StreamReader sr = new StreamReader(@"C:\MAME\games.json.old"))
+            //{
+            //    string json = sr.ReadToEnd();
+            //    sr.Close();
+            //    sr.Dispose();
+            //    foreach (Game g in JsonConvert.DeserializeObject<List<Game>>(json))
+            //    {
+            //        if (g.PlayCount > 0)
+            //        {
+            //            tempGames2.Add(g);
+            //        }
+            //    }
+            //}
             using (StreamReader sr = new StreamReader(_gamesJson))
             {
                 string json = sr.ReadToEnd();
                 sr.Close();
                 sr.Dispose();
                 _games = new ObservableCollection<Game>();
-                List<Game> tempGames = JsonConvert.DeserializeObject<List<Game>>(json); ;
+                List<Game> tempGames = JsonConvert.DeserializeObject<List<Game>>(json);
                 foreach (Game g in tempGames)
                 {
                     if (!g.IsExcluded && !g.IsClone)
                     {
+                        //Game gold = tempGames2.FirstOrDefault(x => x.Name == g.Name);
+                        //if (gold != null && gold.PlayCount > 0 && g.PlayCount!= gold.PlayCount)
+                        //{
+                        //    g.PlayCount = gold.PlayCount;
+                        //}                        
                         _games.Add(g);
                     }
                 }
@@ -272,6 +308,10 @@ namespace MAMEIronWPF
         #endregion
         private void PersistGameChanges()
         {
+            //Make a backup of the old games list, just in case things go south.
+            string _gamesJsonOld = _gamesJson.Replace(".json","") + DateTime.Now.ToString("yyyyMMddHHmmss") + ".json";
+            File.Copy(_gamesJson, _gamesJsonOld);
+            //Write out the new games list.
             using (StreamWriter sw = new StreamWriter(_gamesJson, false))
             {
                 string json = JsonConvert.SerializeObject(_games);
@@ -282,20 +322,11 @@ namespace MAMEIronWPF
         }
         private void lvGames_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            //if (lvGames.SelectedIndex == 0 && _selectedIndex > 0)
-            //{
-            //    lvGames.SelectedIndex = _selectedIndex;
-            //}
             if (lvGames.SelectedItem != null)
             {
-                //TODO: These 3 lines seem unnecessary
-                Game g = (Game)lvGames.SelectedItem;
-                int i = lvGames.Items.IndexOf(g);
-                lvGames.SelectedIndex = i;
-
-
                 Game game = (Game)lvGames.SelectedItem;
                 if (game == null) return;
+                _logger.LogVerbose($"SelectionChanged: Game Name: {game.Name} Selected Index: {lvGames.SelectedIndex} Selected Item Name: {((Game)lvGames.SelectedItem).Name}");
                 string s = Path.Combine(_snapDirectory, game.Screenshot);
 
                 System.Windows.Media.ImageSource imageSource = new BitmapImage();
@@ -343,72 +374,69 @@ namespace MAMEIronWPF
                 {
                     switch (e.Key)
                     {
-                        case Key.Escape:
+                        case Key.V:
+                            _logger.LogVerbose("V in KeyDown.");
                             break;
-                        case Key.D1:
+                        case Key.C:
+                            _logger.LogVerbose("C in KeyDown.");
+                            break;
+                        case Key.System:
+                            _logger.LogVerbose("System in KeyDown.");
                             break;
                         case Key.LeftCtrl:
-                            _ctrlcount++;
-                            if (_ctrlcount == 3)
-                            {
-                                ToggleFavorite();
-                            }
+                            _logger.LogVerbose("LeftCtrl in KeyDown.");
                             break;
                         case Key.LeftAlt:
+                            _logger.LogVerbose("LeftAlt in KeyDown.");
                             break;
                         case Key.Space:
+                            _logger.LogVerbose("Space in KeyDown.");
                             break;
                         case Key.LeftShift:
+                            _logger.LogVerbose("LeftShift in KeyDown.");
                             break;
                         case Key.Z:
+                            _logger.LogVerbose("Z in KeyDown.");
                             break;
                         case Key.X:
+                            _logger.LogVerbose("X in KeyDown.");
                             break;
                         case Key.Up:
+                            _logger.LogVerbose("Up in KeyDown.");
                             break;
                         case Key.Down:
+                            _logger.LogVerbose("Down in KeyDown.");
                             break;
                         case Key.A:
-                        //videoSourcePlayer2.NewFrame -= Cam_NewFrame2;
-                        //var tasks = new List<Task<bool>>();
-                        //tasks.Add(Task<bool>.Factory.StartNew(GetVoiceTextReg));
-                        //Task.WaitAll(tasks.ToArray());
-                        //Thread.Sleep(5000);
-                        //if (_voiceGameList == null)
-                        //{
-                        //    _logger.WriteToLogFile("The voiceToTtext button was pressed, but no games were in the _voiceGameList.");
-                        //    videoSourcePlayer2.NewFrame += Cam_NewFrame2;
-                        //}
-                        //else if (_voiceGameList.Count == 1)
-                        //{
-                        //    StartGame(_voiceGameList[0], "voice");
-                        //    videoSourcePlayer2.NewFrame += Cam_NewFrame2;
-                        //}
-                        //else if (_voiceGameList.Count > 1)
-                        //{
-                        //    gameList.Visible = false;
-                        //    snaps.Visible = false;
-                        //    favoriteList.Visible = false;
-                        //    this.Enabled = false;
-                        //    Form f = new FuzzyGameSelectForm(this, _voiceGameList);
-                        //}
-                        //else
-                        //{
-                        //    _logger.WriteToLogFile("The voiceToTtext button was pressed, but no games were in the _voiceGameList.");
-                        //    videoSourcePlayer2.NewFrame += Cam_NewFrame2;
-                        //}
-                        //break;
-                        case Key.V:
-                            //ShowDialog();
-                            //lvGames.Visible = false;
-                            //snaps.Visible = false;
-                            //favoriteList.Visible = false;
-                            //this.Enabled = false;
-
+                            _logger.LogVerbose("A in KeyDown.");
                             //videoSourcePlayer2.NewFrame -= Cam_NewFrame2;
-                            //MenuForm menuForm = new MenuForm(this);
-                            //menuForm.StartPosition = FormStartPosition.CenterScreen;
-                            //menuForm.Visible = true;
+                            //var tasks = new List<Task<bool>>();
+                            //tasks.Add(Task<bool>.Factory.StartNew(GetVoiceTextReg));
+                            //Task.WaitAll(tasks.ToArray());
+                            //Thread.Sleep(5000);
+                            //if (_voiceGameList == null)
+                            //{
+                            //    _logger.WriteToLogFile("The voiceToTtext button was pressed, but no games were in the _voiceGameList.");
+                            //    videoSourcePlayer2.NewFrame += Cam_NewFrame2;
+                            //}
+                            //else if (_voiceGameList.Count == 1)
+                            //{
+                            //    StartGame(_voiceGameList[0], "voice");
+                            //    videoSourcePlayer2.NewFrame += Cam_NewFrame2;
+                            //}
+                            //else if (_voiceGameList.Count > 1)
+                            //{
+                            //    gameList.Visible = false;
+                            //    snaps.Visible = false;
+                            //    favoriteList.Visible = false;
+                            //    this.Enabled = false;
+                            //    Form f = new FuzzyGameSelectForm(this, _voiceGameList);
+                            //}
+                            //else
+                            //{
+                            //    _logger.WriteToLogFile("The voiceToTtext button was pressed, but no games were in the _voiceGameList.");
+                            //    videoSourcePlayer2.NewFrame += Cam_NewFrame2;
+                            //}
                             break;
                     }
                 }
@@ -421,70 +449,126 @@ namespace MAMEIronWPF
 
         private void ToggleFavorite()
         {
-            Game g = (Game)lvGames.SelectedItem;
-            //string desc = ((Game)lvGames.SelectedItem).Description;
+            PlaySound("pacman_cherry.wav");
             ((Game)lvGames.SelectedItem).ToggleFavorite();
             PersistGameChanges();
 
-            lvGames.ItemsSource = _games.OrderByDescending(x => x.IsFavorite).ThenBy(x => x.Description);
+            lvGames.ItemsSource = GetUpdatedGameList();
             lvGames.Items.Refresh();
 
             if (lvGames.SelectedIndex <= 0 && _selectedIndex > 0)
             {
                 lvGames.SelectedIndex = _selectedIndex;
             }
-            //int i = lvGames.Items.IndexOf(g);
-            //lvGames.SelectedIndex = i;
-            //lvGames.InvalidateProperty(ListView.ItemsSourceProperty);
-            //lvGames.ItemsSource = Games;
-            _ctrlcount = 0;
         }
 
         private void lvGames_PreviewKeyDown(object sender, KeyEventArgs e)
         {
+            _logger.LogVerbose($"{e.Key.ToString()} pressed in PreviewKeyDown");
             switch (e.Key)
             {
-                case Key.D1:
+                case Key.C:
                     //If we're coming in with a new button press, save the exact time that the button was pressed.
-                    if (_startTimeD1Press == new DateTime(0))
+                    if (_startTimeCPress == new DateTime(0))
                     {
-                        _logger.LogVerbose("_startTimeD1Press was Zero so we just set it...");
-                        _startTimeD1Press = DateTime.Now;
+                        _logger.LogVerbose("_startTimeCPress was Zero so we just set it...");
+                        _startTimeCPress = DateTime.Now;
                     }
 
                     //If the button has been held down for < 2 seconds, do nothing. This is a Short-press and the action will happen in PreviewKeyUp
-                    if (DateTime.Now < _startTimeD1Press.AddSeconds(LONGPRESSSECONDS))
+                    if (DateTime.Now < _startTimeCPress.AddMilliseconds(LONGPRESSMILLISECONDS))
                     {
                         //Short-press
                         //Do nothing...action will hapen in PreviewKeyUp
                     }
-                    //If the button is being held down, but the start time is this arbitrary number I chose, then the game has already been toggled, and we're just waiting for the user
-                    // to release the button. It'd be fun to measure reaction times here :)
-                    else if (_startTimeD1Press == new DateTime(1))
+                    //If the button is being held down, but the start time is this arbitrary number I chose, then the game has already been toggled, and we're just waiting for the user to release the button.
+                    else if (_startTimeCPress == new DateTime(1))
                     {
                         //Do nothing....this means the game has been toggled, but the person has not yet released the button.
                         _logger.LogVerbose("Release the Kraken!");
                     }
                     //If the button has been held down for 2 seconds or longer, Toggle the favorite.
-                    //We need to provide an indicator to the user (visually, via the Pac-Man favorite icon [ooohhh...maybe audio too?), so he/she knows to let go of the button.
+                    //TODO: We need to provide an indicator to the user (visually, via the Pac-Man favorite icon [ooohhh...maybe audio too?), so he/she knows to let go of the button.
                     else
                     {
                         //Long-press
-                        _logger.LogVerbose("D1 was long-pressed in PreviewkeyDown.");
-                        _logger.LogVerbose("Toggling Favorite in PreviewkeyDown.");
+                        _logger.LogVerbose("C was long-pressed in PreviewkeyDown.");
+                        _logger.LogVerbose("Toggling Favorite via long-press in PreviewkeyDown.");
                         ToggleFavorite();
-                        _logger.LogVerbose("Reset D1 Start Time to zero in PreviewkeyDown.");
+                        _logger.LogVerbose("Reset C Start Time to zero in PreviewkeyDown.");
                         //This is where the arbitrary time value gets set.
-                        _startTimeD1Press = new DateTime(1);
+                        _startTimeCPress = new DateTime(1);
                     }                    
                     break;
-                case Key.Escape:
-                    _logger.LogVerbose("PreviewKeyDown...Escape");
+                case Key.V:
                     //If we're coming in with a new button press, save the exact time that the button was pressed.
-                    if (_startTimeEscPress == new DateTime(0))
+                    if (_startTimeVPress == new DateTime(0))
                     {
                         _logger.LogVerbose("_startTimeEscPress was Zero so we just set it...");
-                        _startTimeEscPress = DateTime.Now;
+                        _startTimeVPress = DateTime.Now;
+                    }
+                    //If the button has been held down for 2 seconds or longer, trigger the Exit Window
+                    else
+                    {
+                        e.Handled = true;
+                        //Long-press
+                        _logger.LogVerbose("V was long-pressed in PreviewkeyDown.");
+                        ExitWindow exitWindow = new ExitWindow();
+                        exitWindow.Show();
+                        exitWindow.ExitListView.Focus();
+                        _logger.LogVerbose("Reset V Start Time to zero in PreviewkeyDown.");
+                        //This is where the arbitrary time value gets set.
+                        _startTimeVPress = new DateTime(1);
+                    }
+                    break;
+                case Key.Down:
+                    if (_startTimeDownPress == new DateTime(0))
+                    {
+                        _startTimeDownPress = DateTime.Now;
+                        _logger.LogVerbose($"The Down key was pressed at {_startTimeDownPress}.");
+                    }
+                    else if (_startTimeDownPress.AddMilliseconds(LONGPRESSMILLISECONDS) < DateTime.Now && _startTimeDownPress != new DateTime(0))
+                    {
+                        _logger.LogVerbose($"Jumping down {JUMPDISTANCE} items in the games list..");
+                        Game game = (Game)lvGames.SelectedItem;
+                        _logger.LogVerbose($"SelectedIndex: {lvGames.SelectedIndex}. lvGames Item count: {lvGames.Items.Count}");
+                        if (lvGames.SelectedIndex + JUMPDISTANCE > lvGames.Items.Count)
+                        {
+                            lvGames.SelectedIndex = lvGames.Items.Count-1;
+                        }
+                        else
+                        {
+                            lvGames.SelectedIndex += JUMPDISTANCE;
+                        }
+                        lvGames.SelectedItem = lvGames.Items.GetItemAt(lvGames.SelectedIndex);
+                        lvGames.ScrollIntoView(lvGames.SelectedItem);
+                        ListViewItem item = lvGames.ItemContainerGenerator.ContainerFromItem(lvGames.SelectedItem) as ListViewItem;
+                        item.Focus();
+                    }
+                    break;
+                case Key.Up:
+                    if (_startTimeUpPress == new DateTime(0))
+                    {
+                        _startTimeUpPress = DateTime.Now;
+                        _logger.LogVerbose($"The Up key was pressed at {_startTimeUpPress}.");
+                    }
+                    else if (_startTimeUpPress.AddMilliseconds(LONGPRESSMILLISECONDS) < DateTime.Now && _startTimeUpPress != new DateTime(0))
+                    {
+                        _logger.LogVerbose($"Jumping up {JUMPDISTANCE} items in the games list..");
+                        Game game = (Game)lvGames.SelectedItem;
+                        if (lvGames.SelectedIndex - JUMPDISTANCE < 0)
+                        {
+                            lvGames.SelectedIndex = 0;
+                        }
+                        else
+                        {
+                            lvGames.SelectedIndex -= JUMPDISTANCE;
+                        }
+                        _logger.LogVerbose($"SelectedIndex: {lvGames.SelectedIndex}. lvGames Item count: {lvGames.Items.Count}");
+                        lvGames.SelectedItem = lvGames.Items.GetItemAt(lvGames.SelectedIndex);
+                        lvGames.ScrollIntoView(lvGames.SelectedItem);
+                        ListViewItem item = lvGames.ItemContainerGenerator.ContainerFromItem(lvGames.SelectedItem) as ListViewItem;
+                        item.Focus();
                     }
                     break;
             }
@@ -492,48 +576,59 @@ namespace MAMEIronWPF
 
         private void lvGames_PreviewKeyUp(object sender, KeyEventArgs e)
         {
+            _logger.LogVerbose($"{e.Key.ToString()} pressed in PreviewKeyUp");
             switch (e.Key)
             {
-                case Key.D1:
+                case Key.C:
                     //If the person lets go of the button, and this arbitrary value is set, do nothing.
                     //This means it was a long-press and the game has already been toggled in the PreviewKeyDown event.
-                    if (_startTimeD1Press == new DateTime(1))
+                    if (_startTimeCPress == new DateTime(1))
                     {                        
-                        _logger.LogVerbose("We just toggled a game in PreviewKeyDown, so this D1 PreviewkeyUp event should be ignored.");
-                        _logger.LogVerbose("Reset D1 Start Time to zero in PreviewkeyUp: A.");
+                        _logger.LogVerbose("We just toggled a game in PreviewKeyDown, so this C PreviewkeyUp event should be ignored.");
+                        _logger.LogVerbose("Reset C Start Time to zero in PreviewkeyUp: A.");
                         //Reset the button press timer back to zero.
-                        _startTimeD1Press = new DateTime(0);
+                        _startTimeCPress = new DateTime(0);
                     }
                     //If the person lets go of the button and it's been under (2?) seconds, it was a short press. We need to start the game.
-                    else if (DateTime.Now < _startTimeD1Press.AddSeconds(LONGPRESSSECONDS))
+                    else if (DateTime.Now < _startTimeCPress.AddMilliseconds(LONGPRESSMILLISECONDS))
                     {
                         //Short-press
-                        _logger.LogVerbose("D1 was short-pressed in PreviewkeyUp...");
+                        _logger.LogVerbose("C was short-pressed in PreviewkeyUp...");
                         _logger.LogVerbose("Starting game in PreviewkeyUp...");
                         StartGame((Game)lvGames.SelectedItem, "button");
-                        _logger.LogVerbose("Reset D1 Start Time to zero in PreviewkeyUp: B.");
+                        _logger.LogVerbose("Reset C Start Time to zero in PreviewkeyUp: B.");
                         //Reset the button press timer back to zero.
-                        _startTimeD1Press = new DateTime(0);
+                        _startTimeCPress = new DateTime(0);
                     }                    
                     break;
-                case Key.Escape:
-                    if (DateTime.Now < _startTimeEscPress.AddSeconds(LONGPRESSSECONDS))
+                case Key.V:
+                    if (DateTime.Now < _startTimeVPress.AddMilliseconds(LONGPRESSMILLISECONDS))
                     {
                         //Short-press
-                        _logger.LogVerbose("Escape was short-pressed in PreviewkeyUp...");
+                        _logger.LogVerbose("V was short-pressed in PreviewkeyUp...");
                         //Do nothing in this case.
                     }
                     else
                     {
                         //Long-press
-                        _logger.LogVerbose("Escape was long-pressed in PreviewkeyUp...");
+                        //probably do nothing here.
+
+
+                        //_logger.LogVerbose("V was long-pressed in PreviewkeyUp...");
+                        //ExitWindow exitWindow = new ExitWindow();
+                        //exitWindow.Show();                        
                         //Exit MAMEIron, or possibly Windows.
                     }
-                    _startTimeEscPress = new DateTime(0);
+                    _startTimeVPress = new DateTime(0);
+                    break;
+                case Key.Down:
+                    _startTimeDownPress = new DateTime(0);
+                    break;
+                case Key.Up:
+                    _startTimeUpPress = new DateTime(0);
                     break;
             }
             _selectedIndex = lvGames.SelectedIndex;
-            Game g = (Game)lvGames.SelectedItem;
         }
 #endregion
 
@@ -927,7 +1022,7 @@ namespace MAMEIronWPF
 
         #region Audio
         private delegate void PlaySoundDelegate();
-        private void PlaySound()
+        private void PlaySound(string audioFile)
         {
             //if (this.InvokeRequired)
             //{
@@ -937,11 +1032,14 @@ namespace MAMEIronWPF
             //}
             //else
             //{
-            Thread.Sleep(2000);
-            string audioFile = Path.Combine(_rootDirectory, "98883_1656228-lq.wav");
-            if (File.Exists(audioFile))
+            if (audioFile == "startup.wav")
             {
-                System.Media.SoundPlayer player = new System.Media.SoundPlayer(audioFile);
+                Thread.Sleep(2000);
+            }            
+            string fileName = Path.Combine(_rootDirectory, "Media", audioFile);
+            if (File.Exists(fileName))
+            {                
+                System.Media.SoundPlayer player = new System.Media.SoundPlayer(fileName);
                 player.Play();
             }
             //}
@@ -951,7 +1049,12 @@ namespace MAMEIronWPF
         private void window_Closed(object sender, EventArgs e)
         {
             //_localWebCam.Stop();
+            _logger.LogInfo("Toggle Cabinet Lights_Begin");
             ToggleCabinetLights();
+            _logger.LogInfo("Toggle Cabinet Lights_End");
+            _logger.LogInfo("===============================================================================");
+            _logger.LogInfo("Shutting down MAME");
+            _logger.LogInfo("===============================================================================");
             Application.Current.Shutdown();
         }
     }
