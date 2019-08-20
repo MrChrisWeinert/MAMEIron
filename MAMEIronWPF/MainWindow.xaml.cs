@@ -534,7 +534,7 @@ namespace MAMEIronWPF
                         _logger.LogVerbose($"SelectedIndex: {lvGames.SelectedIndex}. lvGames Item count: {lvGames.Items.Count}");
                         if (lvGames.SelectedIndex + JUMPDISTANCE > lvGames.Items.Count)
                         {
-                            lvGames.SelectedIndex = lvGames.Items.Count;
+                            lvGames.SelectedIndex = lvGames.Items.Count-1;
                         }
                         else
                         {
