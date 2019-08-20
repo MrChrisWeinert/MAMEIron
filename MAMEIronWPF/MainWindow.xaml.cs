@@ -63,7 +63,7 @@ namespace MAMEIronWPF
         private DateTime _startTimeCPress;
         private DateTime _startTimeVPress;
         private const int LONGPRESSMILLISECONDS = 3000;
-        private const int JUMPDISTANCE = 100;
+        private const int JUMPDISTANCE;
 
         public MainWindow()
         {
@@ -89,6 +89,7 @@ namespace MAMEIronWPF
             _gamesJson = Path.Combine(_rootDirectory, "games.json");
             _supportCamera = Boolean.Parse(ConfigurationManager.AppSettings["Support_Camera"]);
             _supportNusbio = Boolean.Parse(ConfigurationManager.AppSettings["Support_Nusbio"]);
+            JUMPDISTANCE = Int32.Parse(ConfigurationManager.AppSettings["JUMPDISTANCE"]);
             _logger = new Logger(_logFile);
 
             Boolean.Parse(ConfigurationManager.AppSettings["Support_Nusbio"]);
