@@ -1,13 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27130.0
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29201.188
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MAMEIronWPF", "MAMEIronWPF\MAMEIronWPF.csproj", "{21B43D00-E7F5-40BD-ACD2-0D82279963AA}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MadeInTheUSB.MCU.Lib", "MadeInTheUSB.MCU.Lib\MadeInTheUSB.MCU.Lib.csproj", "{AA0ED0B9-69AE-43FC-84F3-C69D2D9D8477}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Planerator", "Planerator\Planerator.csproj", "{E7D5C246-122C-42E5-89B2-A7A704136B12}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MAMEIronWPF", "MAMEIronWPF\MAMEIronWPF.csproj", "{21B43D00-E7F5-40BD-ACD2-0D82279963AA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -18,6 +18,16 @@ Global
 		SingleImage|Any CPU = SingleImage|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{21B43D00-E7F5-40BD-ACD2-0D82279963AA}.CD_ROM|Any CPU.ActiveCfg = Release|Any CPU
+		{21B43D00-E7F5-40BD-ACD2-0D82279963AA}.CD_ROM|Any CPU.Build.0 = Release|Any CPU
+		{21B43D00-E7F5-40BD-ACD2-0D82279963AA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{21B43D00-E7F5-40BD-ACD2-0D82279963AA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{21B43D00-E7F5-40BD-ACD2-0D82279963AA}.DVD-5|Any CPU.ActiveCfg = Debug|Any CPU
+		{21B43D00-E7F5-40BD-ACD2-0D82279963AA}.DVD-5|Any CPU.Build.0 = Debug|Any CPU
+		{21B43D00-E7F5-40BD-ACD2-0D82279963AA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{21B43D00-E7F5-40BD-ACD2-0D82279963AA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{21B43D00-E7F5-40BD-ACD2-0D82279963AA}.SingleImage|Any CPU.ActiveCfg = Release|Any CPU
+		{21B43D00-E7F5-40BD-ACD2-0D82279963AA}.SingleImage|Any CPU.Build.0 = Release|Any CPU
 		{AA0ED0B9-69AE-43FC-84F3-C69D2D9D8477}.CD_ROM|Any CPU.ActiveCfg = Release|Any CPU
 		{AA0ED0B9-69AE-43FC-84F3-C69D2D9D8477}.CD_ROM|Any CPU.Build.0 = Release|Any CPU
 		{AA0ED0B9-69AE-43FC-84F3-C69D2D9D8477}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -38,16 +48,6 @@ Global
 		{E7D5C246-122C-42E5-89B2-A7A704136B12}.Release|Any CPU.Build.0 = Release|Any CPU
 		{E7D5C246-122C-42E5-89B2-A7A704136B12}.SingleImage|Any CPU.ActiveCfg = Release|Any CPU
 		{E7D5C246-122C-42E5-89B2-A7A704136B12}.SingleImage|Any CPU.Build.0 = Release|Any CPU
-		{21B43D00-E7F5-40BD-ACD2-0D82279963AA}.CD_ROM|Any CPU.ActiveCfg = Release|Any CPU
-		{21B43D00-E7F5-40BD-ACD2-0D82279963AA}.CD_ROM|Any CPU.Build.0 = Release|Any CPU
-		{21B43D00-E7F5-40BD-ACD2-0D82279963AA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{21B43D00-E7F5-40BD-ACD2-0D82279963AA}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{21B43D00-E7F5-40BD-ACD2-0D82279963AA}.DVD-5|Any CPU.ActiveCfg = Debug|Any CPU
-		{21B43D00-E7F5-40BD-ACD2-0D82279963AA}.DVD-5|Any CPU.Build.0 = Debug|Any CPU
-		{21B43D00-E7F5-40BD-ACD2-0D82279963AA}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{21B43D00-E7F5-40BD-ACD2-0D82279963AA}.Release|Any CPU.Build.0 = Release|Any CPU
-		{21B43D00-E7F5-40BD-ACD2-0D82279963AA}.SingleImage|Any CPU.ActiveCfg = Release|Any CPU
-		{21B43D00-E7F5-40BD-ACD2-0D82279963AA}.SingleImage|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

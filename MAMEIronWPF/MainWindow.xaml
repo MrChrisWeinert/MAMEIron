@@ -28,7 +28,6 @@
                         <GradientStop Color="White" Offset="1"/>
                     </LinearGradientBrush>
                 </Border.Background>
-
             </Border>
             <ListView 
                 Grid.Column="2" 
