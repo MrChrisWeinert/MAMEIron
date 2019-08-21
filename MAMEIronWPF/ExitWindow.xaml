@@ -7,10 +7,10 @@
         mc:Ignorable="d"
         Title="ExitWindow" Height="1050" Width="1680" ResizeMode="NoResize" WindowStyle="None" Background="{x:Null}" Foreground="{x:Null}" Left="0" Top="0">
     <Grid>
-        <Rectangle Height="262" VerticalAlignment="Top" Margin="588,213,601,0" Fill="White" RadiusX="90" RadiusY="90"/>
+        <Rectangle Height="316" VerticalAlignment="Top" Margin="588,213,601,0" Fill="White" RadiusX="90" RadiusY="90"/>
         <ListView
             HorizontalAlignment="Left" 
-            Height="162" 
+            Height="236" 
             Margin="656,263,0,0" 
             VerticalAlignment="Top" 
             Width="354" 
