@@ -63,7 +63,7 @@ namespace MAMEIronWPF
         private DateTime _startTimeCPress;
         private DateTime _startTimeVPress;
         private const int LONGPRESSMILLISECONDS = 3000;
-        private const int JUMPDISTANCE;
+        private int JUMPDISTANCE;
 
         public MainWindow()
         {
@@ -229,12 +229,12 @@ namespace MAMEIronWPF
             else
             {
                 _logger.LogInfo($"Couldn't start game: {game.Name} via {st}.");
-                _games.First(x => x.Name == game.Name).IsExcluded = true;
-                //Rebind since we excluded a game.
-                lvGames.ItemsSource = GetUpdatedGameList();
-                lvGames.Items.Refresh();
+                //_games.First(x => x.Name == game.Name).IsExcluded = true;
+                ////Rebind since we excluded a game.
+                //lvGames.ItemsSource = GetUpdatedGameList();
+                //lvGames.Items.Refresh();
 
-                _logger.LogInfo($"Excluded {game.Name} from games list.");
+                //_logger.LogInfo($"Excluded {game.Name} from games list.");
             }
             process.Close();
             _logger.LogVerbose($"process.Close()");
@@ -374,41 +374,26 @@ namespace MAMEIronWPF
                 {
                     switch (e.Key)
                     {
-                        case Key.V:
-                            _logger.LogVerbose("V in KeyDown.");
-                            break;
-                        case Key.C:
-                            _logger.LogVerbose("C in KeyDown.");
-                            break;
                         case Key.System:
-                            _logger.LogVerbose("System in KeyDown.");
-                            break;
-                        case Key.LeftCtrl:
-                            _logger.LogVerbose("LeftCtrl in KeyDown.");
-                            break;
-                        case Key.LeftAlt:
-                            _logger.LogVerbose("LeftAlt in KeyDown.");
-                            break;
-                        case Key.Space:
-                            _logger.LogVerbose("Space in KeyDown.");
+                            e.Handled = true;
                             break;
                         case Key.LeftShift:
-                            _logger.LogVerbose("LeftShift in KeyDown.");
+                            e.Handled = true;
+                            break;
+                        case Key.LeftCtrl:
+                            e.Handled = true;
+                            break;
+                        case Key.Space:
+                            e.Handled = true;
                             break;
                         case Key.Z:
-                            _logger.LogVerbose("Z in KeyDown.");
+                            e.Handled = true;
                             break;
                         case Key.X:
-                            _logger.LogVerbose("X in KeyDown.");
-                            break;
-                        case Key.Up:
-                            _logger.LogVerbose("Up in KeyDown.");
-                            break;
-                        case Key.Down:
-                            _logger.LogVerbose("Down in KeyDown.");
+                            e.Handled = true;
                             break;
                         case Key.A:
-                            _logger.LogVerbose("A in KeyDown.");
+                            e.Handled = true;
                             //videoSourcePlayer2.NewFrame -= Cam_NewFrame2;
                             //var tasks = new List<Task<bool>>();
                             //tasks.Add(Task<bool>.Factory.StartNew(GetVoiceTextReg));
@@ -438,6 +423,45 @@ namespace MAMEIronWPF
                             //    videoSourcePlayer2.NewFrame += Cam_NewFrame2;
                             //}
                             break;
+                        case Key.S:
+                            e.Handled = true;
+                            break;
+                        case Key.Q:
+                            e.Handled = true;
+                            break;
+                        case Key.W:
+                            e.Handled = true;
+                            break;
+                        case Key.I:
+                            e.Handled = true;
+                            break;
+                        case Key.K:
+                            e.Handled = true;
+                            break;
+                        case Key.F:
+                            e.Handled = true;
+                            break;
+                        case Key.G:
+                            e.Handled = true;
+                            break;
+                        case Key.R:
+                            e.Handled = true;
+                            break;
+                        case Key.D:
+                            e.Handled = true;
+                            break;
+                        case Key.V:
+                            _logger.LogVerbose("V in KeyDown.");
+                            break;
+                        case Key.C:
+                            _logger.LogVerbose("C in KeyDown.");
+                            break;
+                        case Key.Up:
+                            _logger.LogVerbose("Up in KeyDown.");
+                            break;
+                        case Key.Down:
+                            _logger.LogVerbose("Down in KeyDown.");
+                            break;
                     }
                 }
             }
@@ -451,6 +475,7 @@ namespace MAMEIronWPF
         {
             PlaySound("pacman_cherry.wav");
             ((Game)lvGames.SelectedItem).ToggleFavorite();
+            _logger.LogInfo($"Just toggled {((Game)lvGames.SelectedItem).Name}. Favorite is now set to: {((Game)lvGames.SelectedItem).IsFavorite}");
             PersistGameChanges();
 
             lvGames.ItemsSource = GetUpdatedGameList();
@@ -464,9 +489,56 @@ namespace MAMEIronWPF
 
         private void lvGames_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-            _logger.LogVerbose($"{e.Key.ToString()} pressed in PreviewKeyDown");
             switch (e.Key)
             {
+                case Key.System:
+                    e.Handled = true;
+                    break;
+                case Key.LeftShift:
+                    e.Handled = true;
+                    break;
+                case Key.LeftCtrl:
+                    e.Handled = true;
+                    break;
+                case Key.Space:
+                    e.Handled = true;
+                    break;
+                case Key.Z:
+                    e.Handled = true;
+                    break;
+                case Key.X:
+                    e.Handled = true;
+                    break;
+                case Key.A:
+                    e.Handled = true;
+                    break;
+                case Key.S:
+                    e.Handled = true;
+                    break;
+                case Key.Q:
+                    e.Handled = true;
+                    break;
+                case Key.W:
+                    e.Handled = true;
+                    break;
+                case Key.I:
+                    e.Handled = true;
+                    break;
+                case Key.K:
+                    e.Handled = true;
+                    break;
+                case Key.F:
+                    e.Handled = true;
+                    break;
+                case Key.G:
+                    e.Handled = true;
+                    break;
+                case Key.R:
+                    e.Handled = true;
+                    break;
+                case Key.D:
+                    e.Handled = true;
+                    break;
                 case Key.C:
                     //If we're coming in with a new button press, save the exact time that the button was pressed.
                     if (_startTimeCPress == new DateTime(0))
@@ -576,9 +648,57 @@ namespace MAMEIronWPF
 
         private void lvGames_PreviewKeyUp(object sender, KeyEventArgs e)
         {
-            _logger.LogVerbose($"{e.Key.ToString()} pressed in PreviewKeyUp");
+//            _logger.LogVerbose($"{e.Key.ToString()} pressed in PreviewKeyUp");
             switch (e.Key)
             {
+                case Key.System:
+                    e.Handled = true;
+                    break;
+                case Key.LeftShift:
+                    e.Handled = true;
+                    break;
+                case Key.LeftCtrl:
+                    e.Handled = true;
+                    break;
+                case Key.Space:
+                    e.Handled = true;
+                    break;
+                case Key.Z:
+                    e.Handled = true;
+                    break;
+                case Key.X:
+                    e.Handled = true;
+                    break;
+                case Key.A:
+                    e.Handled = true;
+                    break;
+                case Key.S:
+                    e.Handled = true;
+                    break;
+                case Key.Q:
+                    e.Handled = true;
+                    break;
+                case Key.W:
+                    e.Handled = true;
+                    break;
+                case Key.I:
+                    e.Handled = true;
+                    break;
+                case Key.K:
+                    e.Handled = true;
+                    break;
+                case Key.F:
+                    e.Handled = true;
+                    break;
+                case Key.G:
+                    e.Handled = true;
+                    break;
+                case Key.R:
+                    e.Handled = true;
+                    break;
+                case Key.D:
+                    e.Handled = true;
+                    break;
                 case Key.C:
                     //If the person lets go of the button, and this arbitrary value is set, do nothing.
                     //This means it was a long-press and the game has already been toggled in the PreviewKeyDown event.
@@ -602,23 +722,6 @@ namespace MAMEIronWPF
                     }                    
                     break;
                 case Key.V:
-                    if (DateTime.Now < _startTimeVPress.AddMilliseconds(LONGPRESSMILLISECONDS))
-                    {
-                        //Short-press
-                        _logger.LogVerbose("V was short-pressed in PreviewkeyUp...");
-                        //Do nothing in this case.
-                    }
-                    else
-                    {
-                        //Long-press
-                        //probably do nothing here.
-
-
-                        //_logger.LogVerbose("V was long-pressed in PreviewkeyUp...");
-                        //ExitWindow exitWindow = new ExitWindow();
-                        //exitWindow.Show();                        
-                        //Exit MAMEIron, or possibly Windows.
-                    }
                     _startTimeVPress = new DateTime(0);
                     break;
                 case Key.Down:

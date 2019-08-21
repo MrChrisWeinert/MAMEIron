@@ -16,6 +16,7 @@ namespace MAMEIronWPF
             InitializeComponent();
             _exitWindowStartTime = DateTime.Now;
             List<string> x = new List<string>();
+            x.Add("Exit");
             x.Add("Reboot");
             x.Add("Shutdown");
             ExitListView.ItemsSource = x;
@@ -34,7 +35,11 @@ namespace MAMEIronWPF
             }
             else if (e.Key == Key.C)
             {
-                if (ExitListView.SelectedItem.ToString() == "Reboot")
+                if (ExitListView.SelectedItem.ToString() == "Exit")
+                {
+                    Application.Current.Shutdown();
+                }
+                else if (ExitListView.SelectedItem.ToString() == "Reboot")
                 {
                     System.Diagnostics.Process.Start("shutdown.exe", "/r /t 0");
                 }
