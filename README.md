@@ -29,3 +29,6 @@ Credits:
 - Thank you to Greg Schechter for creating the WPF [Planerator](https://blogs.msdn.microsoft.com/greg_schechter/2007/10/26/enter-the-planerator-dead-simple-3d-in-wpf-with-a-stupid-name/) which allowed me to 3D-rotate the game screenshots to match the arcade cabinet.
 - Thank you to the fine people that created these sweet fonts, [Arcade](https://pizzadude.dk/site/about/) by Jakob Fischer and [PacFont Good](http://www.abstractfonts.com/designer/89/Fontalicious) by Fontalicious. Without them I’d probably still be using Comic Sans.
 - Thank you to noirenex for the [sound effect](https://www.freesound.org/people/noirenex/sounds/98883/)
+
+## For other random bits of info
+My blog has history on this project, how it started, the cabinet build, etc. [https://chrisweinert.com/category/multiple-arcade-machine-emulator/](https://chrisweinert.com/category/multiple-arcade-machine-emulator/)
