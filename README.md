@@ -31,4 +31,5 @@ Credits:
 - Thank you to noirenex for the [sound effect](https://www.freesound.org/people/noirenex/sounds/98883/)
 
 ## For other random bits of info
-My blog has history on this project, how it started, the cabinet build, etc. [https://chrisweinert.com/category/multiple-arcade-machine-emulator/](https://chrisweinert.com/category/multiple-arcade-machine-emulator/)
+My blog has history on this project, how it started, the cabinet build, etc.
+[https://chrisweinert.com/categories/multiple-arcade-machine-emulator/](https://chrisweinert.com/categories/multiple-arcade-machine-emulator/)
