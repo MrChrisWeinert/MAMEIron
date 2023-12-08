@@ -23,6 +23,7 @@ MAMEIron is a Windows-based MAME Front-end built in WPF.
 MAMEIron will then filter down that list to exclude games based on certain criteria. See the [wiki](https://github.com/MrChrisWeinert/MAMEIron/wiki/Game-Filters) or source code for more details. 
 This is a one-time memory-intensive (3GB ram) process.
 2) MAMEIron was designed to run at 1680x1050. It will look weird at other resolutions.
+3) How did "MAMEIron" get its name? It’s a MAME Front-end (Fe) and Fe is the symbol for Iron on the Periodic Table of Elements, of course!
 
 Credits:
 - Thank you to the person, or team of people, that created the [Nevato](https://www.onyxarcade.com/nevato) Theme. I hacked up their cabinet picture for use in MAMEIron.
