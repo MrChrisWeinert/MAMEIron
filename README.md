@@ -33,4 +33,4 @@ Credits:
 
 ## For other random bits of info
 My blog has history on this project, how it started, the cabinet build, etc.
-[https://chrisweinert.com/categories/multiple-arcade-machine-emulator/](https://chrisweinert.com/categories/multiple-arcade-machine-emulator/)
+[https://chrisweinert.com/categories/multiple-arcade-machine-emulator/](https://chrisweinert.com/tags/mame/)
